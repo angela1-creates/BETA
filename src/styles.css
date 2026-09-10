@@ -58,11 +58,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .upload-route strong,.upload-route small { display:block; }.upload-route strong { font:600 14px 'Manrope'; }.upload-route small { color:#737c78; margin-top:3px; }.upload-route>b { font-size:12px; }
 .route-card { border:0; padding:0; background:transparent; text-align:left; cursor:pointer; min-width:0; }
 .route-image { height:280px; position:relative; overflow:hidden; border-radius:4px; background:#ddd; }
-.route-image:after { content:''; position:absolute; inset:0; background:color-mix(in srgb, var(--accent) 12%, transparent); mix-blend-mode:multiply; }
-.route-image img { width:108%; height:108%; transform:translate(calc(-4% + var(--shift)), -4%); object-fit:cover; filter:saturate(.8); transition:transform .4s ease,filter .4s; }
-.route-card:hover img { transform:translate(calc(-4% + var(--shift)), -4%) scale(1.035); filter:saturate(1); }
+.route-image:after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 68%,rgba(18,25,22,.18)); pointer-events:none; }
+.route-image img { width:100%; height:100%; object-fit:cover; filter:saturate(.9); transition:transform .4s ease,filter .4s; }
+.route-card:hover img { transform:scale(1.025); filter:saturate(1); }
 .route-card.featured { grid-column:span 1; }.route-card.featured .route-image { height:390px; }
-.grade,.saved { position:absolute; z-index:2; top:12px; background:#f7f6f1e8; backdrop-filter:blur(6px); padding:6px 9px; border-radius:3px; font-size:11px; font-weight:600; }.grade{left:12px}.saved{right:12px;display:flex;gap:4px;align-items:center}
+.grade,.saved { position:absolute; z-index:2; top:12px; background:#f7f6f1e8; backdrop-filter:blur(6px); padding:6px 9px; border-radius:3px; font-size:11px; font-weight:600; }.grade{left:12px;display:flex;align-items:center;gap:6px}.grade i{width:7px;height:7px;border-radius:50%;box-shadow:0 0 0 1px #17201d24}.saved{right:12px;display:flex;gap:4px;align-items:center}
 .route-card-copy { display:grid; grid-template-columns:28px 1fr 24px; gap:12px; padding:16px 3px 28px; border-bottom:1px solid #d6d4cd; }.route-card-copy>span { color:#8a918e;font-size:11px;padding-top:5px}.route-card-copy h2 { font:600 17px 'Manrope'; margin:0 0 5px; }.route-card-copy p { margin:0; color:#707773; font-size:13px; line-height:1.4; }.route-card-copy b { transition:transform .2s}.route-card:hover .route-card-copy b{transform:translate(3px,-3px)}
 
 /* Workspace */

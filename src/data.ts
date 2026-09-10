@@ -1,10 +1,18 @@
 import type { Route } from './types'
 
-const image = `${import.meta.env.BASE_URL}route-wall.png`
+const routeImage = (name: string) => `${import.meta.env.BASE_URL}routes/${name}.webp`
+
+const gradeStyles = {
+  V1: { colorName: 'Blue', accent: '#356a9a', image: routeImage('library-v1-blue') },
+  V2: { colorName: 'Yellow', accent: '#c4942d', image: routeImage('library-v2-yellow') },
+  V3: { colorName: 'Coral', accent: '#d35f45', image: routeImage('library-v3-coral') },
+  V4: { colorName: 'Sage', accent: '#52715f', image: routeImage('library-v4-sage') },
+  V5: { colorName: 'Purple', accent: '#765a8f', image: routeImage('library-v5-purple') }
+} as const
 
 const featured: Route[] = [
   {
-    id: 'feet-first', title: 'Feet First', image, grade: 'V1', accent: '#356a9a',
+    id: 'feet-first', title: 'Feet First', image: routeImage('feet-first-v1-blue'), grade: 'V1', colorName: 'Blue', accent: '#356a9a',
     notes: 'A gentle line that rewards looking below the waist.',
     insight: 'Climbers tend to focus too much on hands.',
     hints: [
@@ -15,7 +23,7 @@ const featured: Route[] = [
     ]
   },
   {
-    id: 'weight-shift', title: 'Weight Shift', image, grade: 'V3', accent: '#d35f45',
+    id: 'weight-shift', title: 'Weight Shift', image: routeImage('weight-shift-v3-coral'), grade: 'V3', colorName: 'Coral', accent: '#d35f45',
     notes: 'The next hold is close. The useful position is not.',
     insight: 'Body position matters more than reach.',
     hints: [
@@ -26,7 +34,7 @@ const featured: Route[] = [
     ]
   },
   {
-    id: 'multiple-betas', title: 'Multiple Betas', image, grade: 'V4', accent: '#52715f',
+    id: 'multiple-betas', title: 'Multiple Betas', image: routeImage('multiple-betas-v4-sage'), grade: 'V4', colorName: 'Sage', accent: '#52715f',
     notes: 'A route with room for different bodies and different ideas.',
     insight: 'There may be more than one good solution.',
     hints: [
@@ -47,21 +55,25 @@ const names = [
 
 export const routes: Route[] = [
   ...featured,
-  ...names.map((title, i): Route => ({
-    id: `route-${i + 4}`,
-    title,
-    image,
-    grade: `V${(i % 5) + 1}`,
-    accent: ['#b85843', '#356a9a', '#52715f', '#c4942d'][i % 4],
-    notes: ['Read the lower half first.', 'Look for balance before distance.', 'A compact movement study.'][i % 3],
-    insight: ['Foot choice shapes the next move.', 'Position can create reach.', 'More than one sequence may work.'][i % 3],
-    hints: [
-      'Pause and scan the space between the holds.',
-      'Consider what needs to feel stable before you move.',
-      ['Could a flag help here?', 'Try a deliberate weight shift.', 'Would a foot swap create space?'][i % 3],
-      'Set your feet first, bring your hips toward the wall, then move the next hand.'
-    ]
-  }))
+  ...names.map((title, i): Route => {
+    const grade = `V${(i % 5) + 1}` as keyof typeof gradeStyles
+    const style = gradeStyles[grade]
+
+    return {
+      id: `route-${i + 4}`,
+      title,
+      grade,
+      ...style,
+      notes: ['Read the lower half first.', 'Look for balance before distance.', 'A compact movement study.'][i % 3],
+      insight: ['Foot choice shapes the next move.', 'Position can create reach.', 'More than one sequence may work.'][i % 3],
+      hints: [
+        'Pause and scan the space between the holds.',
+        'Consider what needs to feel stable before you move.',
+        ['Could a flag help here?', 'Try a deliberate weight shift.', 'Would a foot swap create space?'][i % 3],
+        'Set your feet first, bring your hips toward the wall, then move the next hand.'
+      ]
+    }
+  })
 ]
 
 export const emptyAttempt = () => ({
