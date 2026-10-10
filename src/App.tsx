@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { routes, emptyAttempt } from './data'
-import { loadAttempts, saveAttempts } from './storage'
+import { routes as sampleRoutes, emptyAttempt } from './data'
+import { clearAttemptDirty, loadAttempts, loadDirtyAttemptIds, markAttemptDirty, saveAttempts } from './storage'
 import type { Attempt, MoveStep, Route, Screen, Tool } from './types'
 import { Icon } from './components/Icon'
 import { MarkerToolbar } from './components/MarkerToolbar'
@@ -10,13 +10,21 @@ import { HintPanel } from './components/HintPanel'
 import { ComparisonView } from './components/ComparisonView'
 import { ReflectionForm } from './components/ReflectionForm'
 import { ResearchSummary } from './components/ResearchSummary'
+import { AttemptMedia } from './components/AttemptMedia'
+import { useResearchAuth } from './researchAuth'
+import { researchBackend } from './services/researchBackend'
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 function App() {
+  const auth = useResearchAuth()
   const [screen, setScreen] = useState<Screen>('home')
-  const [route, setRoute] = useState<Route>(routes[0])
+  const [route, setRoute] = useState<Route>(sampleRoutes[0])
   const [attempts, setAttempts] = useState<Record<string, Attempt>>(loadAttempts)
+  const [uploadedRoutes, setUploadedRoutes] = useState<Route[]>([])
+  const [syncStatus, setSyncStatus] = useState<'local'|'loading'|'saving'|'saved'|'error'>('local')
+  const [syncError, setSyncError] = useState('')
+  const [routeUploadProgress, setRouteUploadProgress] = useState(0)
   const [mode, setMode] = useState<'predicted' | 'actual'>('predicted')
   const [tool, setTool] = useState<Tool>('LH')
   const [selectedId, setSelectedId] = useState<string>()
@@ -28,8 +36,32 @@ function App() {
   const steps = attempt[key]
 
   useEffect(() => { saveAttempts(attempts) }, [attempts])
+  useEffect(() => {
+    if (!auth.session || !auth.profile?.consentedAt) { setSyncStatus('local'); setUploadedRoutes([]); return }
+    let active = true
+    setSyncStatus('loading'); setSyncError('')
+    void researchBackend.loadResearchData().then(data => {
+      if (!active) return
+      const dirty = loadDirtyAttemptIds(loadAttempts())
+      setAttempts(current => {
+        const merged = { ...current }
+        Object.entries(data.attempts).forEach(([routeId, remoteAttempt]) => { if (!dirty.has(routeId)) merged[routeId] = remoteAttempt })
+        return merged
+      })
+      setUploadedRoutes(data.routes); setSyncStatus('saved')
+    }).catch(cause => { if (active) { setSyncStatus('error'); setSyncError(cause instanceof Error ? cause.message : 'Could not load private research data.') } })
+    return () => { active = false }
+  }, [auth.session?.user.id, auth.profile?.consentedAt])
 
-  const updateAttempt = (change: Partial<Attempt>) => setAttempts(prev => ({ ...prev, [route.id]: { ...(prev[route.id] || emptyAttempt()), ...change } }))
+  const updateAttempt = (change: Partial<Attempt>) => { markAttemptDirty(route.id); setSyncStatus('local'); setAttempts(prev => ({ ...prev, [route.id]: { ...(prev[route.id] || emptyAttempt()), ...change } })) }
+  useEffect(() => {
+    if (!auth.session || !auth.profile?.consentedAt || !loadDirtyAttemptIds(loadAttempts()).has(route.id)) return
+    const timer = window.setTimeout(() => {
+      setSyncStatus('saving'); setSyncError('')
+      void researchBackend.saveAttempt(route, attempts[route.id] || emptyAttempt()).then(() => { clearAttemptDirty(route.id); setSyncStatus('saved') }).catch(cause => { setSyncStatus('error'); setSyncError(cause instanceof Error ? cause.message : 'Save failed. Your local draft is safe.') })
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [attempt, route.id, auth.session?.user.id, auth.profile?.consentedAt])
   const commitSteps = (next: MoveStep[]) => {
     setHistory(h => [...h.slice(-29), steps]); setFuture([])
     updateAttempt({ [key]: next.map((s, i) => ({ ...s, order: i + 1 })) })
@@ -45,14 +77,30 @@ function App() {
   const undo = () => { if (!history.length) return; const previous = history[history.length - 1]; setFuture(f => [steps, ...f]); setHistory(h => h.slice(0, -1)); updateAttempt({ [key]: previous }) }
   const redo = () => { if (!future.length) return; const next = future[0]; setHistory(h => [...h, steps]); setFuture(f => f.slice(1)); updateAttempt({ [key]: next }) }
   const openRoute = (next: Route) => { setRoute(next); setScreen('workspace'); setMode('predicted'); setHistory([]); setFuture([]); window.scrollTo(0, 0) }
+  const uploadRoute = async (file: File) => {
+    if (auth.session && auth.profile?.consentedAt) {
+      setRouteUploadProgress(1)
+      try { const next = await researchBackend.createUploadedRoute(file, setRouteUploadProgress); setUploadedRoutes(current => [next, ...current]); openRoute(next) }
+      finally { setRouteUploadProgress(0) }
+      return
+    }
+    const image = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onerror = () => reject(new Error('Could not read that photo.')); reader.onload = () => resolve(String(reader.result)); reader.readAsDataURL(file) })
+    openRoute({ id: `local-${Date.now()}`, title: file.name.replace(/\.[^.]+$/, '') || 'My route', image, grade: 'Open', colorName: 'Custom', accent: '#315c4d', notes: 'A local route draft from this device.', insight: 'Start with what catches your attention.', hints: [] })
+  }
+  const uploadAttemptMedia = async (file: File, onProgress: (percent: number) => void) => {
+    const media = await researchBackend.uploadAttemptMedia(route, attempt, file, onProgress)
+    updateAttempt(media)
+  }
+  const deleteAttemptMedia = async () => { await researchBackend.deleteAttemptMedia(route, attempt); updateAttempt({ mediaPath: undefined, mediaKind: undefined, mediaUrl: undefined }) }
 
   return <div className="app-shell">
     <Header screen={screen} onNavigate={setScreen} />
-    {screen === 'home' && <Home onStart={() => setScreen('library')} onDemo={() => openRoute(routes[0])} />}
-    {screen === 'library' && <Library onOpen={openRoute} attempts={attempts} />}
+    {screen === 'home' && <Home onStart={() => setScreen('library')} onDemo={() => openRoute(sampleRoutes[0])} />}
+    {screen === 'library' && <Library onOpen={openRoute} attempts={attempts} routes={[...uploadedRoutes, ...sampleRoutes]} onUpload={uploadRoute} uploadProgress={routeUploadProgress} cloudEnabled={Boolean(auth.session && auth.profile?.consentedAt)} />}
     {screen === 'workspace' && <main className="workspace-page">
       <div className="workspace-top">
         <button className="text-button" onClick={() => setScreen('library')}>← All routes</button>
+        <div className={`sync-indicator ${syncStatus}`} role="status">{syncStatus === 'loading' ? 'Loading private studies…' : syncStatus === 'saving' ? 'Saving privately…' : syncStatus === 'saved' ? 'Saved privately' : syncStatus === 'error' ? 'Local draft · sync needs attention' : 'Local draft'}{syncError && <small>{syncError}</small>}</div>
         <div className="route-heading"><div><span className="eyebrow">{route.grade} · {route.colorName} holds · Route study</span><h1>{route.title}</h1><p>{route.notes}</p></div>
           <div className="mode-switch"><button className={mode === 'predicted' ? 'active' : ''} onClick={() => { setMode('predicted'); setHistory([]); setFuture([]) }}>Before · Prediction</button><button className={mode === 'actual' ? 'active' : ''} onClick={() => { setMode('actual'); setHistory([]); setFuture([]) }}>After · Actual</button></div>
         </div>
@@ -67,6 +115,7 @@ function App() {
           <SequencePanel steps={steps} selectedId={selectedId} onSelect={setSelectedId} onUpdate={editStep} onDelete={deleteStep} onMove={reorder} />
           <div className="confidence-card"><label><span>Confidence {mode === 'predicted' ? 'before' : 'after'} climbing</span><strong>{mode === 'predicted' ? attempt.confidenceBefore : attempt.confidenceAfter}/5</strong><input type="range" min="1" max="5" value={mode === 'predicted' ? attempt.confidenceBefore : attempt.confidenceAfter} onChange={e => updateAttempt(mode === 'predicted' ? { confidenceBefore: Number(e.target.value) } : { confidenceAfter: Number(e.target.value) })} /></label></div>
           <HintPanel hints={route.hints} revealed={attempt.hintLevelUsed} onReveal={level => updateAttempt({ hintLevelUsed: level })} />
+          <AttemptMedia attempt={attempt} canSync={Boolean(auth.session && auth.profile?.consentedAt)} onUpload={uploadAttemptMedia} onDelete={deleteAttemptMedia}/>
         </div>
       </div>
       <div className="workspace-next"><div><span className="eyebrow">{mode === 'predicted' ? 'Ready to climb?' : 'After your attempt'}</span><h2>{mode === 'predicted' ? 'Save the read. Keep the problem.' : 'See what the wall taught you.'}</h2></div><button className="primary-button" onClick={() => mode === 'predicted' ? setMode('actual') : setScreen('compare')}>{mode === 'predicted' ? 'Save prediction & record actual' : 'Compare both reads'} <Icon name="arrow" /></button></div>
@@ -88,22 +137,14 @@ function Home({ onStart, onDemo }: { onStart: () => void; onDemo: () => void }) 
   </main>
 }
 
-function Library({ onOpen, attempts }: { onOpen: (r: Route) => void; attempts: Record<string, Attempt> }) {
+function Library({ onOpen, attempts, routes, onUpload, uploadProgress, cloudEnabled }: { onOpen: (r: Route) => void; attempts: Record<string, Attempt>; routes: Route[]; onUpload: (file: File) => Promise<void>; uploadProgress: number; cloudEnabled: boolean }) {
   const completed = useMemo(() => Object.values(attempts).filter(a => a.predictedBeta.length).length, [attempts])
   const uploadRef = useRef<HTMLInputElement>(null)
-  const upload = (file?: File) => {
-    if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = () => onOpen({
-      id: `local-${Date.now()}`, title: file.name.replace(/\.[^.]+$/, '') || 'My route', image: String(reader.result),
-      grade: 'Open', colorName: 'Custom', accent: '#315c4d', notes: 'A route from your own wall.', insight: 'Start with what catches your attention.',
-      hints: ['Scan the route again, especially the spaces between holds.', 'Look for the position that makes the next move feel quieter.', 'Could a weight shift or flag create balance?', 'Set the most useful foot first, bring your hips toward the wall, then move your hand.']
-    })
-    reader.readAsDataURL(file)
-  }
+  const [uploadError, setUploadError] = useState('')
+  const upload = (file?: File) => { if (!file || !file.type.startsWith('image/')) return; setUploadError(''); void onUpload(file).catch(cause => setUploadError(cause instanceof Error ? cause.message : 'Could not save this route photo.')) }
   return <main className="page library-page"><div className="page-intro library-intro"><div><span className="eyebrow">Route library · 23 studies</span><h1>What do you notice?</h1><p>Choose a line, study the holds, then sketch the movement you imagine.</p></div>{completed > 0 && <span className="local-progress">{completed} saved locally</span>}</div>
     <input ref={uploadRef} className="visually-hidden" type="file" accept="image/*" onChange={e => upload(e.target.files?.[0])} />
-    <button className="upload-route" onClick={() => uploadRef.current?.click()}><span>＋</span><div><strong>Read your own route</strong><small>Choose a photo from this device</small></div><b>Upload photo</b></button>
+    <button className="upload-route" disabled={uploadProgress > 0} onClick={() => uploadRef.current?.click()}><span>＋</span><div><strong>Read your own route</strong><small>{cloudEnabled ? 'Private upload to your research account' : 'Local draft until you sign in and consent'}</small></div><b>{uploadProgress > 0 ? `${uploadProgress}%` : 'Upload photo'}</b></button>{uploadError && <p className="form-error" role="alert">{uploadError}</p>}
     <div className="route-grid">{routes.map((r, i) => <button className={`route-card ${i < 3 ? 'featured' : ''}`} key={r.id} onClick={() => onOpen(r)}><div className="route-image"><img src={r.image} alt={`${r.colorName} ${r.grade} climbing route`} /><span className="grade"><i style={{ background: r.accent }} />{r.grade} · {r.colorName}</span>{attempts[r.id]?.predictedBeta.length ? <span className="saved"><Icon name="check" size={14} /> Saved</span> : null}</div><div className="route-card-copy"><span>{String(i + 1).padStart(2, '0')}</span><div><h2>{r.title}</h2><p>{r.insight}</p></div><b>↗</b></div></button>)}</div>
   </main>
 }
@@ -112,6 +153,6 @@ function About() {
   return <main className="page about-page"><div className="about-hero"><span className="eyebrow">About the experiment</span><h1>How much guidance helps—<br /><em>without solving?</em></h1><p>BETA is a design research prototype about perception, movement, and preserving a climber’s independence.</p></div><div className="about-grid"><article><span>Question</span><h2>How do experienced and less-experienced climbers perceive the same route differently?</h2></article><article><span>Design principle</span><h2>Hint, don’t solve.</h2><p>Guidance arrives in deliberate stages, from attention to explicit beta.</p></article><article><span>Hypothesis</span><h2>Progressive visual guidance may improve route-reading skill better than immediately showing the full beta.</h2></article></div><section className="test-section"><span className="eyebrow">What we would test</span><div>{['Route-reading accuracy', 'Hints requested', 'Route completion', 'Transfer to a new route', 'Confidence', 'Perceived independence'].map((x, i) => <p key={x}><span>{String(i + 1).padStart(2, '0')}</span>{x}</p>)}</div></section></main>
 }
 
-function Footer() { return <footer><span className="logo"><span>B</span>BETA</span><p>Made to keep the problem in your hands.</p><small>Local prototype · No account · No cloud</small></footer> }
+function Footer() { return <footer><span className="logo"><span>B</span>BETA</span><p>Made to keep the problem in your hands.</p><small>Local drafts · Private research sync when connected</small></footer> }
 
 export default App

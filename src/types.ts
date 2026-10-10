@@ -25,6 +25,9 @@ export interface Attempt {
   confidenceBefore: number
   confidenceAfter: number
   reflection: Reflection
+  mediaPath?: string
+  mediaKind?: 'image' | 'video'
+  mediaUrl?: string
 }
 
 export interface Route {
@@ -37,6 +40,9 @@ export interface Route {
   insight: string
   accent: string
   hints: string[]
+  remoteId?: string
+  mediaPath?: string
+  ownerUploaded?: boolean
 }
 
 export type Screen = 'home' | 'library' | 'workspace' | 'compare' | 'research' | 'about'

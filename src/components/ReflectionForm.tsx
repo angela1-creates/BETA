@@ -11,6 +11,6 @@ export function ReflectionForm({ value, onChange }: { value: Reflection; onChang
   return <section className="reflection-card">
     <span className="eyebrow">After the climb</span><h2>Notice what changed.</h2>
     <div className="reflection-grid">{prompts.map(p => <label key={p.key}><span>{p.label}</span><textarea value={value[p.key]} onChange={e => onChange({ ...value, [p.key]: e.target.value })} placeholder={p.placeholder} /></label>)}</div>
-    <div className="autosave">Saved automatically on this device</div>
+    <div className="autosave">Saved locally first, then privately synced when your research account is connected</div>
   </section>
 }

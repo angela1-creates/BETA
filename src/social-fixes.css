@@ -21,6 +21,46 @@
   .trust-row { max-width: 100%; }
 }
 
+.account-state { display: grid; gap: 14px; }
+.account-state h3 { margin: 0; font-family: var(--font-display, Georgia, serif); font-size: 28px; line-height: 1.05; }
+.account-state p { margin: 0; color: #59645f; line-height: 1.55; }
+.account-state label { display: grid; gap: 7px; font-size: 12px; font-weight: 750; color: #27362f; }
+.account-state small { color: #7a817d; font-weight: 500; }
+.form-success { padding: 11px 13px; border-left: 3px solid #28704e; background: #eef8f1; color: #245d42; font-size: 12px; }
+.full { width: 100%; justify-content: center; }
+.referral-panel { display: grid; gap: 12px; margin: 8px 0; padding: 18px; border-radius: 16px; background: #f0eee7; }
+.copy-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.copy-row input { min-width: 0; }
+.referral-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.referral-metrics span { padding: 10px; border-radius: 10px; background: #fff; color: #59645f; font-size: 10px; text-align: center; }
+.referral-metrics strong { display: block; color: #20332c; font-size: 20px; }
+.delete-account { margin-top: 10px; padding-top: 12px; border-top: 1px solid #d3d0c8; }
+.delete-account summary { cursor: pointer; color: #873d35; font-size: 12px; font-weight: 750; }
+.delete-account[open] { display: grid; gap: 10px; }
+.danger-button { min-height: 46px; border: 0; border-radius: 999px; background: #9c3c31; color: #fff; font-weight: 750; cursor: pointer; }
+.danger-button:disabled { opacity: .45; cursor: not-allowed; }
+.sync-indicator { width: fit-content; max-width: 100%; margin: 10px 0 0 auto; padding: 7px 11px; border-radius: 999px; background: #eeece5; color: #52615a; font-size: 11px; font-weight: 750; }
+.sync-indicator.saved { background: #e5f3e9; color: #286044; }
+.sync-indicator.error { background: #fff0ed; color: #84352c; }
+.sync-indicator small { display: block; margin-top: 3px; font-weight: 500; }
+.attempt-media-card { display: grid; gap: 13px; padding: 20px; border-radius: 18px; background: #fff; border: 1px solid #ddd9cf; }
+.attempt-media-card h2 { margin: 3px 0; font-family: var(--font-display, Georgia, serif); font-size: 25px; }
+.attempt-media-card p { margin: 0; color: #68716c; line-height: 1.45; }
+.attempt-media-preview { overflow: hidden; border-radius: 12px; background: #17211d; }
+.attempt-media-preview img, .attempt-media-preview video { display: block; width: 100%; max-height: 360px; object-fit: contain; }
+.media-draft-actions { display: grid; gap: 9px; }
+.media-draft-actions > span { overflow: hidden; color: #52615a; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.attempt-media-card progress { width: 100%; accent-color: #e76f51; }
+.local-draft-note { font-size: 11px; }
+.danger-text { color: #9c3c31; }
+
+@media (max-width: 560px) {
+  .referral-metrics { grid-template-columns: 1fr; }
+  .copy-row { grid-template-columns: 1fr; }
+  .sync-indicator { margin-left: 0; }
+  .account-state h3 { font-size: 24px; }
+}
+
 @media (max-width: 420px) {
   .hero-content h1 { font-size: 43px; }
   .page-title h1 { font-size: 40px; }

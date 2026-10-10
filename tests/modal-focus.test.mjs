@@ -3,8 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 test('modal focus setup does not rerun when controlled inputs render', async () => {
-  const source = await readFile(new URL('../src/SocialApp.tsx', import.meta.url), 'utf8')
-  const modal = source.slice(source.indexOf('function AccessibleModal'), source.indexOf('function PageTitle'))
+  const modal = await readFile(new URL('../src/components/AccessibleModal.tsx', import.meta.url), 'utf8')
 
   assert.match(modal, /const closeRef = useRef\(onClose\)/)
   assert.match(modal, /closeRef\.current = onClose/)

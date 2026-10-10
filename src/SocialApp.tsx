@@ -4,6 +4,9 @@ import { loadDemoState, saveDemoState } from './demo'
 import { createToken, hasPendingInvitation, isRequestActive, requestDisplayStatus, screenHref, trackEvent, transitionInvitation, transitionRequest } from './social'
 import type { AvailabilityRequest, BetaChallenge, ClimbMoment, Crew, DemoState, Invitation, SessionProposal } from './social'
 import { Icon } from './components/Icon'
+import { AccessibleModal } from './components/AccessibleModal'
+import { ResearchAccountModal } from './components/ResearchAccountModal'
+import { useResearchAuth } from './researchAuth'
 import { useTranslation } from 'react-i18next'
 import { backendConfigured } from './services/supabase'
 import { platform, type MediaDraft } from './platform'
@@ -19,9 +22,11 @@ const initialScreen = (): Screen => {
 
 export default function SocialApp() {
   const { i18n } = useTranslation()
+  const auth = useResearchAuth()
   const [screen, setScreen] = useState<Screen>(initialScreen)
   const [demo, setDemo] = useState<DemoState>(loadDemoState)
   const [toast, setToast] = useState('')
+  const [accountOpen, setAccountOpen] = useState(false)
   const sharedToken = new URLSearchParams(location.search).get('shared')
   useEffect(() => { saveDemoState(demo) }, [demo])
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(''), 2800); return () => window.clearTimeout(timer) }, [toast])
@@ -30,16 +35,17 @@ export default function SocialApp() {
   const navigate = (next: Screen) => { setScreen(next); history.pushState({ screen: next }, '', screenHref(location.pathname, location.search, next)); window.scrollTo(0, 0) }
   if (sharedToken) return <SharedView demo={demo} token={sharedToken}/>
   if (screen === 'learn') return <div className="nested-lab"><button className="back-to-social" onClick={() => navigate('climbs')}>← Back to My Climbs</button><LegacyRouteLab /></div>
-  return <div className="app-shell social-shell"><Header screen={screen} onNavigate={navigate} language={i18n.language} onLanguage={language => void i18n.changeLanguage(language)}/><DemoBanner/>
+  return <div className="app-shell social-shell"><Header screen={screen} onNavigate={navigate} language={i18n.language} onLanguage={language => void i18n.changeLanguage(language)} accountLabel={auth.session?.user.email?.[0]?.toUpperCase() || 'A'} onAccount={() => setAccountOpen(true)}/><DemoBanner/>
     {screen === 'home' && <Home onNavigate={navigate} demo={demo}/>} {screen === 'find' && <FindCrew demo={demo} update={update} notify={setToast}/>} {screen === 'climbs' && <MyClimbs demo={demo} update={update} notify={setToast} onLearn={() => navigate('learn')}/>} {screen === 'share' && <ShareHub demo={demo} update={update} notify={setToast}/>} {screen === 'crew' && <MyCrewV2 demo={demo} update={update} notify={setToast} onFind={() => navigate('find')}/>} {toast && <div className="toast" role="status" aria-live="polite">✓ {toast}</div>}
+    {accountOpen && <ResearchAccountModal onClose={() => setAccountOpen(false)}/>}
   </div>
 }
 
-function DemoBanner() { const { t } = useTranslation(); return <div className={`demo-banner ${backendConfigured ? 'connected' : ''}`}><strong>{backendConfigured ? t('status.backendReady') : t('demo.title')}</strong><span>{backendConfigured ? 'Private data is handled by the configured Supabase project.' : t('demo.detail')}</span></div> }
+function DemoBanner() { const { t } = useTranslation(); return <div className={`demo-banner ${backendConfigured ? 'connected' : ''}`}><strong>{backendConfigured ? 'Research backend available' : t('demo.title')}</strong><span>{backendConfigured ? 'Route Lab can sync private research data after consent. Social matching, crews, and challenges remain demo-only.' : t('demo.detail')}</span></div> }
 
-function Header({ screen, onNavigate, language, onLanguage }: { screen: Screen; onNavigate: (screen: Screen) => void; language: string; onLanguage: (language: string) => void }) {
+function Header({ screen, onNavigate, language, onLanguage, accountLabel, onAccount }: { screen: Screen; onNavigate: (screen: Screen) => void; language: string; onLanguage: (language: string) => void; accountLabel: string; onAccount: () => void }) {
   const { t } = useTranslation(); const items: [Screen, string][] = [['find', t('nav.find')], ['climbs', t('nav.climbs')], ['share', t('nav.share')], ['crew', t('nav.crew')]]
-  return <><header className="site-header social-header"><button className="logo" onClick={() => onNavigate('home')} aria-label={t('nav.home')}><span>β</span>BETA</button><nav aria-label="Primary navigation">{items.map(([id, label]) => <button key={id} className={screen === id ? 'active' : ''} onClick={() => onNavigate(id)}>{label}</button>)}</nav><div className="header-actions"><button className="language-button" onClick={() => onLanguage(language.startsWith('zh') ? 'en' : 'zh-CN')} aria-label={t('language.label')}>{language.startsWith('zh') ? 'EN' : '中文'}</button><button className="avatar-button" onClick={() => onNavigate('crew')} aria-label={t('nav.profile')}>A</button></div></header><nav className="mobile-nav" aria-label="Mobile navigation">{items.map(([id, label]) => <button key={id} className={screen === id ? 'active' : ''} onClick={() => onNavigate(id)}><span aria-hidden="true">{id === 'find' ? '⌖' : id === 'climbs' ? '△' : id === 'share' ? '↗' : '◉'}</span>{label}</button>)}</nav></>
+  return <><header className="site-header social-header"><button className="logo" onClick={() => onNavigate('home')} aria-label={t('nav.home')}><span>β</span>BETA</button><nav aria-label="Primary navigation">{items.map(([id, label]) => <button key={id} className={screen === id ? 'active' : ''} onClick={() => onNavigate(id)}>{label}</button>)}</nav><div className="header-actions"><button className="language-button" onClick={() => onLanguage(language.startsWith('zh') ? 'en' : 'zh-CN')} aria-label={t('language.label')}>{language.startsWith('zh') ? 'EN' : '中文'}</button><button className="avatar-button" onClick={onAccount} aria-label="Research account">{accountLabel}</button></div></header><nav className="mobile-nav" aria-label="Mobile navigation">{items.map(([id, label]) => <button key={id} className={screen === id ? 'active' : ''} onClick={() => onNavigate(id)}><span aria-hidden="true">{id === 'find' ? '⌖' : id === 'climbs' ? '△' : id === 'share' ? '↗' : '◉'}</span>{label}</button>)}</nav></>
 }
 
 function Home({ onNavigate, demo }: { onNavigate: (screen: Screen) => void; demo: DemoState }) {
@@ -142,14 +148,6 @@ function MyCrew({ demo, update, notify, onFind }: { demo: DemoState; update: (st
 function SharedView({ demo, token }: { demo: DemoState; token: string }) {
   const climb = demo.climbs.find(item => item.shareToken === token); const challenge = demo.challenges.find(item => item.shareToken === token)
   return <main className="shared-view"><button className="logo" onClick={() => location.assign(location.pathname)}><span>β</span>BETA</button>{climb ? <><span className="privacy-pill">Shared by link</span><div className="share-card"><img src={climb.mediaUrl} alt="Shared climbing moment"/><div className="share-overlay"><span>BETA · MY CLIMB</span><h2>{climb.title}</h2><p>{climb.caption}</p></div></div><p>Shared media remains controlled by its creator. Do not redistribute it without consent.</p></> : challenge ? <><span className="privacy-pill">Shared challenge</span><div className="challenge-media shared"><img src={challenge.mediaUrl} alt="Shared climbing challenge"/><div><span>BETA CHALLENGE</span><h2>{challenge.prompt}</h2></div></div><p>Guest viewing works on the web. Persistent guest responses require a configured secure backend.</p></> : <Empty title="This link is unavailable" text="It may have expired or been revoked." action="Go to BETA" onAction={() => location.assign(location.pathname)}/>}</main>
-}
-
-function AccessibleModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  const panel = useRef<HTMLDivElement>(null)
-  const closeRef = useRef(onClose)
-  closeRef.current = onClose
-  useEffect(() => { const previous = document.activeElement as HTMLElement | null; const root = panel.current; root?.querySelector<HTMLElement>('input:not([type="hidden"]),select,textarea,button:not([aria-label="Close"])')?.focus(); const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') closeRef.current(); if (event.key !== 'Tab' || !root) return; const items = [...root.querySelectorAll<HTMLElement>('button,input,select,textarea')].filter(item => !item.hasAttribute('disabled')); if (!items.length) return; const first = items[0], last = items[items.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() } }; document.addEventListener('keydown', onKey); document.body.classList.add('modal-open'); return () => { document.removeEventListener('keydown', onKey); document.body.classList.remove('modal-open'); previous?.focus() } }, [])
-  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><div className="sheet" ref={panel} role="dialog" aria-modal="true" aria-label={title}><div className="sheet-head"><h2>{title}</h2><button className="icon-button" type="button" onClick={onClose} aria-label="Close">×</button></div>{children}</div></div>
 }
 
 function PageTitle({ kicker, title, text, action }: { kicker: string; title: string; text: string; action?: React.ReactNode }) { return <div className="page-title"><div><span className="kicker">{kicker}</span><h1>{title}</h1><p>{text}</p></div>{action}</div> }
