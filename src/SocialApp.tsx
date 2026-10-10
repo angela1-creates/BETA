@@ -4,13 +4,18 @@ import { loadDemoState, saveDemoState } from './demo'
 import { createToken, isRequestActive, requestDisplayStatus, trackEvent, transitionInvitation } from './social'
 import type { AvailabilityRequest, BetaChallenge, ClimbMoment, DemoState, Invitation } from './social'
 import { Icon } from './components/Icon'
+import './social-fixes.css'
 
 type Screen = 'home' | 'find' | 'climbs' | 'share' | 'crew' | 'learn'
 const uid = () => Math.random().toString(36).slice(2, 10)
 const formatTime = (value: string) => new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+const initialScreen = (): Screen => {
+  const requested = new URLSearchParams(location.search).get('screen')
+  return requested && ['home', 'find', 'climbs', 'share', 'crew', 'learn'].includes(requested) ? requested as Screen : 'home'
+}
 
 export default function SocialApp() {
-  const [screen, setScreen] = useState<Screen>('home')
+  const [screen, setScreen] = useState<Screen>(initialScreen)
   const [demo, setDemo] = useState<DemoState>(loadDemoState)
   const [toast, setToast] = useState('')
   useEffect(() => { saveDemoState(demo) }, [demo])
