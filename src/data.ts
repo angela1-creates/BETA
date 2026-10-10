@@ -1,19 +1,21 @@
 import type { Route } from './types'
 
 const routeImage = (name: string) => `${import.meta.env.BASE_URL}routes/${name}.webp`
+const realRouteImage = (grade: number) => `${import.meta.env.BASE_URL}routes/real-study-v${grade}.jpg`
 
 const gradeStyles = {
-  V1: { colorName: 'Blue', accent: '#356a9a', image: routeImage('library-v1-blue') },
-  V2: { colorName: 'Yellow', accent: '#c4942d', image: routeImage('library-v2-yellow') },
-  V3: { colorName: 'Coral', accent: '#d35f45', image: routeImage('library-v3-coral') },
-  V4: { colorName: 'Sage', accent: '#52715f', image: routeImage('library-v4-sage') },
-  V5: { colorName: 'Purple', accent: '#765a8f', image: routeImage('library-v5-purple') }
+  V1: { colorName: 'Mixed', accent: '#356a9a', image: realRouteImage(1) },
+  V2: { colorName: 'Mixed', accent: '#c4942d', image: realRouteImage(2) },
+  V3: { colorName: 'Mixed', accent: '#d35f45', image: realRouteImage(3) },
+  V4: { colorName: 'Mixed', accent: '#52715f', image: realRouteImage(4) },
+  V5: { colorName: 'Mixed', accent: '#765a8f', image: realRouteImage(5) },
+  V6: { colorName: 'Mixed', accent: '#9a5a3d', image: realRouteImage(6) }
 } as const
 
 const featured: Route[] = [
   {
-    id: 'feet-first', title: 'Feet First', image: routeImage('feet-first-v1-blue'), grade: 'V1', colorName: 'Blue', accent: '#356a9a',
-    notes: 'A gentle line that rewards looking below the waist.',
+    id: 'feet-first', title: 'Feet First', image: realRouteImage(1), grade: 'V1 study', colorName: 'Mixed holds', accent: '#356a9a',
+    notes: 'Real gym photography. V1 is a BETA study level, not the original gym grade.',
     insight: 'Climbers tend to focus too much on hands.',
     hints: [
       'Pay attention to your feet between the two large blue holds.',
@@ -23,8 +25,8 @@ const featured: Route[] = [
     ]
   },
   {
-    id: 'weight-shift', title: 'Weight Shift', image: routeImage('weight-shift-v3-coral'), grade: 'V3', colorName: 'Coral', accent: '#d35f45',
-    notes: 'The next hold is close. The useful position is not.',
+    id: 'weight-shift', title: 'Weight Shift', image: realRouteImage(3), grade: 'V3 study', colorName: 'Mixed holds', accent: '#d35f45',
+    notes: 'Real gym photography. The next hold is close. The useful position is not.',
     insight: 'Body position matters more than reach.',
     hints: [
       'Notice where your hips are in relation to your left foot.',
@@ -34,8 +36,8 @@ const featured: Route[] = [
     ]
   },
   {
-    id: 'multiple-betas', title: 'Multiple Betas', image: routeImage('multiple-betas-v4-sage'), grade: 'V4', colorName: 'Sage', accent: '#52715f',
-    notes: 'A route with room for different bodies and different ideas.',
+    id: 'multiple-betas', title: 'Multiple Betas', image: realRouteImage(4), grade: 'V4 study', colorName: 'Mixed holds', accent: '#52715f',
+    notes: 'Real gym photography with room for different bodies and different ideas.',
     insight: 'There may be more than one good solution.',
     hints: [
       'Look for two different ways to create balance before the final move.',
@@ -56,7 +58,7 @@ const names = [
 export const routes: Route[] = [
   ...featured,
   ...names.map((title, i): Route => {
-    const grade = `V${(i % 5) + 1}` as keyof typeof gradeStyles
+    const grade = `V${(i % 6) + 1}` as keyof typeof gradeStyles
     const style = gradeStyles[grade]
 
     return {

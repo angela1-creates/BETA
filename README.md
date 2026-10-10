@@ -40,7 +40,7 @@ Clear site data for the local origin to reset the prototype. Product events are 
 
 The original Route Lab remains available from **My Climbs → Open Route Lab**:
 
-- 23 local sample routes using eight original route photographs, including unique images for Feet First, Weight Shift, and Multiple Betas
+- 23 sample studies using six real indoor-climbing photos. Credits live in `public/routes/PHOTO_CREDITS.md`; V1–V6 are BETA study levels, not verified gym grades.
 - Clear difficulty and hold-color labels, such as `V3 · Coral`
 - Tap-based LH, RH, LF, and RF placement
 - Two-tap movement arrows
@@ -95,4 +95,4 @@ Select a marker tool and tap the route image. For an arrow, tap once to set its 
 
 ## Stack
 
-React, Vite, TypeScript, and Tailwind CSS. Original generated route photography is stored locally in `public/routes/` and optimized as WebP assets.
+React, Vite, TypeScript, and Tailwind CSS. Route Lab uses locally stored Pexels photography so annotation works offline and no third-party request is made at runtime.

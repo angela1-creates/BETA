@@ -1,0 +1,27 @@
+@media (max-width: 760px) {
+  .social-shell,
+  .social-home,
+  .social-page,
+  .social-hero,
+  .hero-content,
+  .page-title,
+  .page-title > div,
+  .safety-callout,
+  .filter-bar,
+  .request-card { min-width: 0; max-width: 100%; }
+  .social-hero { grid-template-columns: minmax(0, 1fr); overflow: hidden; }
+  .hero-content { width: calc(100vw - 60px); }
+  .social-page { width: 100vw; overflow: hidden; }
+  .page-title > div { width: calc(100vw - 34px); }
+  .hero-content h1,
+  .page-title h1 { overflow-wrap: anywhere; }
+  .demo-banner { flex-wrap: wrap; gap: 3px 8px; }
+  .demo-banner span { min-width: 0; }
+  .mobile-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .trust-row { max-width: 100%; }
+}
+
+@media (max-width: 420px) {
+  .hero-content h1 { font-size: 43px; }
+  .page-title h1 { font-size: 40px; }
+}
