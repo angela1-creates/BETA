@@ -2,6 +2,15 @@
 
 All notable changes to BETA are documented here.
 
+## [0.1.1.0] - 2026-09-09
+
+### Changed
+
+- Replaced the repeated wall photo with eight original, movement-specific climbing route images.
+- Made route difficulty and hold color explicit with labels such as `V3 · Coral`.
+- Added distinct visual studies for the three featured research routes and V1–V5 library routes.
+- Optimized route photography for a fast static-site experience.
+
 ## [0.1.0.0] - 2026-09-09
 
 ### Added
