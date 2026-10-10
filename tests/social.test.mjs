@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createToken, hasPendingInvitation, isRequestActive, requestDisplayStatus, transitionInvitation, transitionRequest } from '../src/social.ts'
+import { createToken, hasPendingInvitation, isRequestActive, requestDisplayStatus, screenHref, transitionInvitation, transitionRequest } from '../src/social.ts'
 
 const request = (endsAt, status = 'active') => ({
   id: 'request-1', personId: 'maya', personName: 'Maya', avatar: 'M', gym: 'Movement Santa Clara',
@@ -48,4 +48,12 @@ test('share tokens are long, unpredictable-looking, and unique', () => {
   const first = createToken(), second = createToken()
   assert.ok(first.length >= 30)
   assert.notEqual(first, second)
+})
+
+// Regression: Route Lab query persisted after returning to the social app.
+// Found by /investigate on 2026-10-09.
+test('screen navigation removes stale Route Lab query on home and updates other screens', () => {
+  assert.equal(screenHref('/BETA/', '?screen=learn', 'home'), '/BETA/')
+  assert.equal(screenHref('/BETA/', '?screen=learn', 'climbs'), '/BETA/?screen=climbs')
+  assert.equal(screenHref('/BETA/', '?shared=secret&screen=learn', 'share'), '/BETA/?screen=share')
 })

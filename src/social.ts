@@ -174,3 +174,12 @@ export const trackEvent = (state: DemoState, name: string): DemoState => ({
   ...state,
   events: [...state.events.slice(-99), { name, at: new Date().toISOString() }]
 })
+
+export function screenHref(pathname: string, search: string, screen: string) {
+  const params = new URLSearchParams(search)
+  params.delete('shared')
+  if (screen === 'home') params.delete('screen')
+  else params.set('screen', screen)
+  const query = params.toString()
+  return `${pathname}${query ? `?${query}` : ''}`
+}
