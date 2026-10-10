@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import LegacyRouteLab from './App'
 import { loadDemoState, saveDemoState } from './demo'
-import { createToken, hasPendingInvitation, isRequestActive, requestDisplayStatus, trackEvent, transitionInvitation, transitionRequest } from './social'
+import { createToken, hasPendingInvitation, isRequestActive, requestDisplayStatus, screenHref, trackEvent, transitionInvitation, transitionRequest } from './social'
 import type { AvailabilityRequest, BetaChallenge, ClimbMoment, Crew, DemoState, Invitation, SessionProposal } from './social'
 import { Icon } from './components/Icon'
 import { useTranslation } from 'react-i18next'
@@ -26,7 +26,8 @@ export default function SocialApp() {
   useEffect(() => { saveDemoState(demo) }, [demo])
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(''), 2800); return () => window.clearTimeout(timer) }, [toast])
   const update = (next: DemoState, event?: string) => setDemo(event ? trackEvent(next, event) : next)
-  const navigate = (next: Screen) => { setScreen(next); window.scrollTo(0, 0) }
+  useEffect(() => { const onPopState = () => setScreen(initialScreen()); window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState) }, [])
+  const navigate = (next: Screen) => { setScreen(next); history.pushState({ screen: next }, '', screenHref(location.pathname, location.search, next)); window.scrollTo(0, 0) }
   if (sharedToken) return <SharedView demo={demo} token={sharedToken}/>
   if (screen === 'learn') return <div className="nested-lab"><button className="back-to-social" onClick={() => navigate('climbs')}>← Back to My Climbs</button><LegacyRouteLab /></div>
   return <div className="app-shell social-shell"><Header screen={screen} onNavigate={navigate} language={i18n.language} onLanguage={language => void i18n.changeLanguage(language)}/><DemoBanner/>
