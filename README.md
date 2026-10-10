@@ -36,6 +36,8 @@ The three home actions are independent:
 
 Clear site data for the local origin to reset the prototype. Product events are stored only in local demo state and are never sent as analytics.
 
+The interface uses draft-first publishing: selecting media or starting a challenge does not create content until the user previews and confirms it. Crew invitations, RSVP proposals, repeat-session requests, and matching transitions are interactive locally and visibly labeled as demo behavior when Supabase is not configured.
+
 ## Preserved BETA features
 
 The original Route Lab remains available from **My Climbs → Open Route Lab**:
@@ -61,8 +63,71 @@ Manual annotation is never required for social sharing.
 - `src/demo.ts`: fictional seed data and demo persistence adapter
 - `src/App.tsx`: preserved original route-learning experience
 - `supabase/migrations/0001_beta_social.sql`: reference schema and Row Level Security starting point for a real backend
+- `supabase/migrations/0002_security_and_sharing.sql`: private Storage, invitation/RSVP data, revocable share links, and expanded RLS policies
+- `supabase/functions/resolve-share/index.ts`: trusted share-token resolver that issues short-lived media URLs
+- `src/services/supabase.ts`: credential-aware Supabase client and private-media helpers
+- `src/platform.ts`: platform-independent media, sharing, and preference interfaces
+- `src/i18n.ts`: English and Simplified Chinese resources with persisted device preference
 
 Production should replace the demo adapter with Supabase Auth, Postgres, and a private Storage bucket. Apply the migration through the Supabase CLI only after review. Then add policies for membership writes, token exchange through an Edge Function, rate limiting, moderation, deletion/export, and guardian consent. Store only token hashes, issue short-lived signed media URLs after server-side authorization, and never put a service-role key in Vite client variables.
+
+## Supabase setup
+
+No backend is connected by default. Without credentials, the application remains in clearly marked local demo mode and does not display backend-dependent success messages.
+
+1. Create a Supabase project and review both files in `supabase/migrations/`.
+2. Apply the migrations in order with the Supabase CLI.
+3. Deploy `supabase/functions/resolve-share` and set its server-only `SUPABASE_SERVICE_ROLE_KEY` secret.
+4. Copy `.env.example` to `.env.local` and add only the project URL and public anon key.
+5. Confirm that `climbing-media` is private before inviting real users.
+
+Verify that User A cannot read or change User B's private data or media, revoked and expired tokens return no content, valid tokens return only the permitted resource with a short-lived URL, and anonymous browsers cannot list object paths or token hashes.
+
+The schema and browser client are prepared, but a production project, authentication delivery, moderation operations, and deployment are not configured in this repository.
+
+## Languages
+
+BETA detects the device language and supports English (`en`) and Simplified Chinese (`zh-CN`). Use the **中文 / EN** header control to switch. The choice persists without resetting product state, and user-generated captions remain in their original language.
+
+Safety terminology distinguishes 保护搭档 (belay partner), 本人陈述的保护资质 (self-reported qualification), 岩馆安全检查 (gym safety check), and 搭档安全互检 (partner safety check). A future `zh-TW` resource can be added without changing component state.
+
+## PWA and Capacitor readiness
+
+The PWA build generates an installable manifest and an offline app-shell cache while preserving the `/BETA/` GitHub Pages base. Shared content remains accessible through ordinary web links without installing an app.
+
+Capacitor configuration lives in `capacitor.config.ts`. Native projects are deliberately not generated or published yet.
+
+```bash
+npm run cap:add:ios
+npm run cap:add:android
+npm run cap:sync
+```
+
+Before TestFlight or Play testing, add reviewed Capacitor Camera, Share, Preferences, Notifications, and Filesystem adapters; configure universal/app links; add native privacy manifests and permission copy; and test on physical devices. Never include a Supabase service-role key in a web or native bundle.
+
+## Implementation status
+
+Completed locally:
+
+- Preview, confirm, and discard before saving climb media or challenges
+- Validated matching transitions and duplicate-session guards
+- Focus-trapped dialogs, Escape/backdrop dismissal, larger touch targets, and mobile safe areas
+- Existing-friend invitation links, session proposals, RSVP confirmation, and repeat-session guards in demo mode
+- English/Simplified Chinese architecture and persistent toggle
+- PWA output, Capacitor configuration, Supabase client boundary, private Storage policies, and revocable link resolver
+
+Demo-only until a Supabase project is configured:
+
+- Fictional partner discovery and simulated acceptance
+- Invitation delivery, guest responses, RSVP delivery, blocks, reports, and analytics
+- Local object-URL media and links, which are not private cross-device sharing
+
+Blocked on external configuration:
+
+- Real accounts and authentication delivery
+- Durable media upload and cross-device access
+- Production moderation, rate limits, deletion/export, and guardian consent
+- TestFlight, App Store, and Play Store packages
 
 ## Demo journeys
 
