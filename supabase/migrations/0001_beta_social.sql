@@ -1,0 +1,29 @@
+-- Reference migration for a future authenticated Supabase deployment.
+-- The GitHub Pages demo does not execute this file or claim these controls are live.
+create extension if not exists pgcrypto;
+create table profiles (id uuid primary key references auth.users on delete cascade, display_name text not null check (char_length(display_name) between 1 and 60), is_adult boolean not null default false, visibility text not null default 'invited' check (visibility in ('gym','invited')), created_at timestamptz not null default now());
+create table gyms (id uuid primary key default gen_random_uuid(), name text not null, city text not null);
+create table availability (id uuid primary key default gen_random_uuid(), owner_id uuid not null references profiles on delete cascade, gym_id uuid not null references gyms, starts_at timestamptz not null, ends_at timestamptz not null, disciplines text[] not null, looking_for text not null, message text, status text not null default 'active', check (ends_at > starts_at), check (status in ('active','cancelled')));
+create table invitations (id uuid primary key default gen_random_uuid(), availability_id uuid not null references availability on delete cascade, sender_id uuid not null references profiles, recipient_id uuid not null references profiles, status text not null default 'pending' check (status in ('pending','accepted','declined','cancelled')), created_at timestamptz not null default now());
+create table sessions (id uuid primary key default gen_random_uuid(), gym_id uuid references gyms, starts_at timestamptz not null, status text not null check (status in ('confirmed','completed','cancelled')), created_by uuid not null references profiles);
+create table session_members (session_id uuid references sessions on delete cascade, profile_id uuid references profiles on delete cascade, primary key(session_id,profile_id));
+create table crews (id uuid primary key default gen_random_uuid(), owner_id uuid not null references profiles, name text not null, kind text not null, guardian_managed boolean not null default false);
+create table crew_members (crew_id uuid references crews on delete cascade, profile_id uuid references profiles on delete cascade, role text not null default 'member', primary key(crew_id,profile_id));
+create table climbs (id uuid primary key default gen_random_uuid(), owner_id uuid not null references profiles, session_id uuid references sessions, caption text, media_path text, visibility text not null default 'private' check (visibility in ('private','crew','link')), share_token_hash text, created_at timestamptz not null default now());
+create table challenges (id uuid primary key default gen_random_uuid(), owner_id uuid not null references profiles, climb_id uuid references climbs, prompt text not null, reveal_at timestamptz, visibility text not null default 'private', share_token_hash text, revoked_at timestamptz);
+create table challenge_responses (id uuid primary key default gen_random_uuid(), challenge_id uuid references challenges on delete cascade, author_id uuid not null references profiles, body text not null, media_path text, created_at timestamptz not null default now());
+create table blocks (blocker_id uuid references profiles on delete cascade, blocked_id uuid references profiles on delete cascade, primary key(blocker_id,blocked_id));
+create table reports (id uuid primary key default gen_random_uuid(), reporter_id uuid not null references profiles, reported_id uuid not null references profiles, reason text not null, created_at timestamptz not null default now());
+alter table profiles enable row level security; alter table availability enable row level security; alter table invitations enable row level security; alter table sessions enable row level security; alter table session_members enable row level security; alter table crews enable row level security; alter table crew_members enable row level security; alter table climbs enable row level security; alter table challenges enable row level security; alter table challenge_responses enable row level security; alter table blocks enable row level security; alter table reports enable row level security;
+create policy "own profile" on profiles for all using (id = auth.uid()) with check (id = auth.uid());
+create policy "adult active availability discovery" on availability for select using (ends_at > now() and status = 'active' and exists (select 1 from profiles p where p.id = auth.uid() and p.is_adult) and not exists (select 1 from blocks b where (b.blocker_id = auth.uid() and b.blocked_id = owner_id) or (b.blocker_id = owner_id and b.blocked_id = auth.uid())));
+create policy "own availability" on availability for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+create policy "invitation participants" on invitations for all using (sender_id = auth.uid() or recipient_id = auth.uid()) with check (sender_id = auth.uid());
+create policy "session members" on sessions for select using (exists (select 1 from session_members sm where sm.session_id = id and sm.profile_id = auth.uid()));
+create policy "crew members" on crews for select using (exists (select 1 from crew_members cm where cm.crew_id = id and cm.profile_id = auth.uid()));
+create policy "own climbs" on climbs for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+create policy "own challenges" on challenges for all using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+create policy "response authors" on challenge_responses for insert with check (author_id = auth.uid());
+create policy "own blocks" on blocks for all using (blocker_id = auth.uid()) with check (blocker_id = auth.uid());
+create policy "submit reports" on reports for insert with check (reporter_id = auth.uid());
+-- Use a private climbing-media bucket and short-lived signed URLs after server-side authorization.
