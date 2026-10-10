@@ -1,5 +1,6 @@
 export type RequestStatus = 'active' | 'pending' | 'confirmed' | 'expired' | 'cancelled'
 export type InvitationStatus = 'pending' | 'accepted' | 'declined' | 'cancelled'
+export type RsvpStatus = 'pending' | 'accepted' | 'declined'
 
 export interface AvailabilityRequest {
   id: string
@@ -34,6 +35,8 @@ export interface ClimbingSession {
   gym: string
   startsAt: string
   status: 'confirmed' | 'completed' | 'cancelled'
+  crewId?: string
+  note?: string
 }
 
 export interface ClimbMoment {
@@ -79,6 +82,27 @@ export interface Crew {
   guardianManaged?: boolean
 }
 
+export interface CrewInvitation {
+  id: string
+  crewId: string
+  inviteeName: string
+  channel: 'link' | 'email'
+  status: RsvpStatus
+  token: string
+  createdAt: string
+}
+
+export interface SessionProposal {
+  id: string
+  crewId: string
+  gym: string
+  startsAt: string
+  note?: string
+  responses: { personName: string; status: RsvpStatus }[]
+  status: 'proposed' | 'confirmed' | 'cancelled'
+  createdAt: string
+}
+
 export interface SafetySettings {
   profileVisibility: 'Gym only' | 'Invited people only'
   blockedIds: string[]
@@ -95,6 +119,8 @@ export interface DemoState {
   climbs: ClimbMoment[]
   challenges: BetaChallenge[]
   crews: Crew[]
+  crewInvitations: CrewInvitation[]
+  sessionProposals: SessionProposal[]
   safety: SafetySettings
   events: { name: string; at: string }[]
 }
@@ -107,6 +133,7 @@ export function requestDisplayStatus(request: AvailabilityRequest, invitations: 
   const invite = invitations.find(item => item.requestId === request.id)
   if (invite?.status === 'accepted') return 'confirmed'
   if (invite?.status === 'pending') return 'pending'
+  if (request.status === 'pending') return 'active'
   return request.status
 }
 
@@ -120,6 +147,21 @@ export function transitionInvitation(invitation: Invitation, next: InvitationSta
   if (!allowed[invitation.status].includes(next)) throw new Error(`Cannot change invitation from ${invitation.status} to ${next}`)
   return { ...invitation, status: next }
 }
+
+export function transitionRequest(request: AvailabilityRequest, next: RequestStatus): AvailabilityRequest {
+  const allowed: Record<RequestStatus, RequestStatus[]> = {
+    active: ['pending', 'cancelled', 'expired'],
+    pending: ['active', 'confirmed', 'cancelled', 'expired'],
+    confirmed: ['cancelled'],
+    expired: [],
+    cancelled: []
+  }
+  if (!allowed[request.status].includes(next)) throw new Error(`Cannot change request from ${request.status} to ${next}`)
+  return { ...request, status: next }
+}
+
+export const hasPendingInvitation = (invitations: Invitation[], requestId: string) =>
+  invitations.some(item => item.requestId === requestId && item.status === 'pending')
 
 export const createToken = () => {
   const bytes = new Uint8Array(18)

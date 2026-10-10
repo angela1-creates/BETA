@@ -44,6 +44,7 @@ export const initialDemoState = (): DemoState => ({
     ], createdAt: new Date().toISOString()
   }],
   crews: [{ id: 'family-crew', name: 'Sunday Senders', kind: 'Family', members: ['You', 'Alex', 'Nana Jo'], private: true, guardianManaged: true }],
+  crewInvitations: [], sessionProposals: [],
   safety: { profileVisibility: 'Gym only', blockedIds: [], adultConfirmed: true, shareConsent: false }, events: []
 })
 
@@ -53,7 +54,9 @@ export function loadDemoState(): DemoState {
   try {
     const saved = localStorage.getItem(KEY)
     if (!saved) return initialDemoState()
-    return { ...initialDemoState(), ...JSON.parse(saved) }
+    const initial = initialDemoState()
+    const parsed = JSON.parse(saved)
+    return { ...initial, ...parsed, crewInvitations: parsed.crewInvitations || [], sessionProposals: parsed.sessionProposals || [] }
   } catch { return initialDemoState() }
 }
 

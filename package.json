@@ -8,20 +8,29 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "cap:sync": "npm run build && cap sync",
+    "cap:add:ios": "cap add ios",
+    "cap:add:android": "cap add android"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.3",
+    "@supabase/supabase-js": "^2.117.3",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
+    "autoprefixer": "latest",
+    "i18next": "^26.4.2",
+    "postcss": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-i18next": "^17.0.16",
     "tailwindcss": "^3.4.17",
-    "postcss": "latest",
-    "autoprefixer": "latest"
+    "typescript": "latest",
+    "vite": "latest"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "vite-plugin-pwa": "^2.0.0"
   }
 }

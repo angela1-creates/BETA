@@ -25,3 +25,36 @@
   .hero-content h1 { font-size: 43px; }
   .page-title h1 { font-size: 40px; }
 }
+
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.language-button { min-width: 48px; min-height: 44px; border: 1px solid #d3d0c8; border-radius: 999px; background: #fff; cursor: pointer; font-weight: 700; }
+.field-label { display: block; width: 100%; font-size: 12px; font-weight: 700; margin-top: 10px; }
+[hidden] { display: none !important; }
+.media-preview { width: 100%; margin: 12px 0; border-radius: 10px; overflow: hidden; background: #17211d; }
+.media-preview img, .media-preview video { display: block; width: 100%; max-height: 340px; object-fit: cover; }
+.challenge-draft img { height: 240px; }
+.confirm-actions { width: 100%; display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.confirm-actions > button { flex: 1; }
+.form-error { padding: 11px 13px; border-left: 3px solid #b63f32; background: #fff0ed; color: #7f2e26; font-size: 12px; }
+.modal-open { overflow: hidden; }
+.sheet input, .sheet select, .sheet textarea { min-height: 48px; }
+.sheet .check-label input { min-width: 24px; min-height: 24px; margin: 0; }
+.primary-button:disabled, .secondary-button:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+.confirmed-note { color: #28704e; font-size: 12px; font-weight: 700; }
+.request-card:has(.status.confirmed) .card-actions > .primary-button,
+.request-card:has(.status.confirmed) .card-actions > .text-button { display: none; }
+.request-card:has(.status.confirmed) .card-actions::before { content: '✓ Confirmed'; color: #28704e; font-size: 12px; font-weight: 700; }
+.shared-view { max-width: 760px; min-height: 100vh; margin: auto; padding: 28px 20px calc(40px + env(safe-area-inset-bottom)); display: grid; gap: 24px; }
+
+@media (max-width: 760px) {
+  .social-header { padding-top: env(safe-area-inset-top); height: calc(76px + env(safe-area-inset-top)); }
+  .mobile-nav { height: calc(68px + env(safe-area-inset-bottom)); }
+  .social-shell { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .sheet { padding-bottom: calc(30px + env(safe-area-inset-bottom)); }
+  .mobile-nav button, .icon-button, .member-row button, .reaction-row button, .text-button { min-width: 44px; min-height: 44px; }
+  .header-actions { gap: 6px; }
+  .language-button { min-width: 52px; }
+  .confirm-actions { flex-direction: column-reverse; }
+  .confirm-actions > button { width: 100%; }
+}
