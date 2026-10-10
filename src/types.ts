@@ -32,6 +32,7 @@ export interface Route {
   title: string
   image: string
   grade: string
+  colorName: string
   notes: string
   insight: string
   accent: string
