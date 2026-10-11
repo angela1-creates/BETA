@@ -86,9 +86,9 @@ export interface CrewInvitation {
   id: string
   crewId: string
   inviteeName: string
-  channel: 'link' | 'email'
+  channel: 'share' | 'link' | 'email'
   status: RsvpStatus
-  token: string
+  token?: string
   createdAt: string
 }
 

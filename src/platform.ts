@@ -10,7 +10,8 @@ export interface MediaService {
 }
 
 export interface ShareService {
-  share(input: { title: string; text: string; url: string }): Promise<'shared' | 'copied' | 'cancelled'>
+  share(input: { title: string; text: string; url?: string }): Promise<'shared' | 'copied' | 'cancelled'>
+  copyLink(url: string): Promise<void>
 }
 
 export interface PreferenceService {
@@ -29,13 +30,14 @@ export const webShareService: ShareService = {
   async share(input) {
     try {
       if (navigator.share) { await navigator.share(input); return 'shared' }
-      await navigator.clipboard.writeText(input.url)
+      await navigator.clipboard.writeText([input.text, input.url].filter(Boolean).join('\n'))
       return 'copied'
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return 'cancelled'
       throw error
     }
-  }
+  },
+  async copyLink(url) { await navigator.clipboard.writeText(url) }
 }
 
 export const webPreferences: PreferenceService = {
