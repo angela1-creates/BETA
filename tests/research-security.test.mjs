@@ -32,9 +32,9 @@ test('account deletion keeps the service role inside an origin-restricted Edge F
   assert.doesNotMatch(backend, /SERVICE_ROLE/)
 })
 
-test('Google login is gated and email magic links remain available', () => {
+test('Google login is gated and email magic-link signup remains available', () => {
   assert.match(backend, /signInWithOtp/)
-  assert.match(backend, /shouldCreateUser: false/)
+  assert.match(backend, /shouldCreateUser: true/)
   assert.match(backend, /googleAuthConfigured/)
   assert.match(backend, /signInWithOAuth/)
 })

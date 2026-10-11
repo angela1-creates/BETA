@@ -56,7 +56,7 @@ export const researchBackend = {
     return data.session
   },
   async signInWithEmail(email: string) {
-    const { error } = await client().auth.signInWithOtp({ email, options: { emailRedirectTo: redirectUrl(), shouldCreateUser: false } })
+    const { error } = await client().auth.signInWithOtp({ email, options: { emailRedirectTo: redirectUrl(), shouldCreateUser: true } })
     if (error) throw error
   },
   async requestReferralInvite(email: string, referralCode: string) {
