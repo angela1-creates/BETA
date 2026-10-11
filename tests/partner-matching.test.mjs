@@ -8,6 +8,7 @@ const gyms = await readFile(new URL('../src/movementGyms.ts', import.meta.url), 
 const app = await readFile(new URL('../src/SocialApp.tsx', import.meta.url), 'utf8')
 const copy = await readFile(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const platform = await readFile(new URL('../src/platform.ts', import.meta.url), 'utf8')
+const accountModal = await readFile(new URL('../src/components/ResearchAccountModal.tsx', import.meta.url), 'utf8')
 
 test('Bay Area Movement pilot includes all five official locations', () => {
   for (const location of ['Belmont', 'Mountain View', 'San Francisco', 'Santa Clara', 'Sunnyvale']) {
@@ -34,6 +35,13 @@ test('invitation acceptance is an atomic server-side session transition', () => 
   assert.match(backend, /rpc\('respond_partner_invitation'/)
   assert.match(migration, /invitations_sender_id_fkey[\s\S]*on delete cascade/)
   assert.match(migration, /sessions_created_by_fkey[\s\S]*on delete cascade/)
+})
+
+test('connected account copy distinguishes real and local-only features', () => {
+  assert.match(accountModal, /Pilot backend connected/)
+  assert.match(accountModal, /Real adult partner matching is available/)
+  assert.match(accountModal, /Crews, challenges, and the Share Wall remain stored locally/)
+  assert.doesNotMatch(accountModal, /matching remain demo-only/)
 })
 
 test('share card handoff and media-backed download are explicit', () => {
