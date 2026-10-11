@@ -1,5 +1,122 @@
 # BETA
 
+## Phase 2A research pilot
+
+This branch adds a consent-based Supabase research path for Route Lab. Signed-in,
+consented testers can keep private routes, predictions, attempts, reflections, and
+climbing media across browsers. Local Route Lab drafts continue to work when the
+backend is unavailable or before a tester signs in. Adult partner matching can also
+run against Supabase after migration `0004_partner_matching.sql`; crews, challenges,
+and social media sharing remain local demos in this release.
+
+The implemented flow is:
+
+1. A tester signs up with an email magic link while pilot signup is enabled, or a
+   researcher sends an invitation from Supabase Auth.
+2. The tester signs in with an email magic link (or Google when explicitly enabled).
+3. The tester reviews the research notice and records consent plus minimal study
+   characteristics. Height and wingspan are optional.
+4. Route Lab saves predictions, actual attempts, and reflections to owner-scoped
+   Postgres rows. Photos and videos use a private Storage bucket and short-lived
+   signed playback URLs.
+5. The tester can share their unique recruitment link. Referral reporting exposes
+   counts only, never another participant's identity.
+6. The tester can delete their account, database records, and uploaded media through
+   the server-side deletion function.
+
+### Supabase configuration
+
+Create a non-production Supabase project for the pilot, install the Supabase CLI,
+link the project, and review then apply all migrations in order:
+
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+supabase functions deploy delete-account
+supabase functions deploy request-research-invite --no-verify-jwt
+```
+
+`delete-account` must retain gateway JWT verification. The invitation function is
+called before an invitee has an account, so it is deployed without gateway JWT
+verification and instead enforces its exact origin allowlist, unpredictable referral
+code, hashed email storage, and daily rate limit internally.
+
+Set these Edge Function secrets. Use an exact comma-separated origin allowlist; do
+not use `*` for the pilot.
+
+```bash
+supabase secrets set ALLOWED_ORIGINS=https://beta-climb.vercel.app,https://angela1-creates.github.io
+supabase secrets set APP_REDIRECT_URL=https://beta-climb.vercel.app/
+```
+
+Supabase supplies `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and
+`SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. The service-role key must never be
+placed in `.env`, Vercel variables whose names begin with `VITE_`, source code, or a
+browser/native bundle.
+
+In Supabase Authentication:
+
+- add the exact Vercel and GitHub Pages callback URLs to the redirect allowlist;
+- enable email signup while recruiting testers, with email confirmation retained;
+  disable open signup and use dashboard invitations whenever recruitment is closed;
+- configure SMTP before relying on magic links outside a tiny test group;
+- enable Google only after its OAuth client, redirect URI, and invitation/allowlist
+  enforcement have been tested. Then set `VITE_SUPABASE_GOOGLE_ENABLED=true`;
+- keep the `climbing-media` bucket private.
+
+### Vercel environment variables
+
+Add these under Project Settings -> Environment Variables, then redeploy:
+
+```text
+VITE_BASE_PATH=/
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
+VITE_SUPABASE_GOOGLE_ENABLED=false
+```
+
+For GitHub Pages, keep `VITE_BASE_PATH=/BETA/`. The anon key is intentionally
+public; privacy comes from Row Level Security and Storage policies, not from hiding
+that key.
+
+### Two-account authorization verification
+
+Create two disposable password-based test users in the pilot project. Do not use
+real participant accounts. Supply their credentials only in the local shell, run
+the test, then delete the users:
+
+```bash
+npm run test:security
+```
+
+The script reads `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
+`BETA_TEST_USER_A_EMAIL`, `BETA_TEST_USER_A_PASSWORD`,
+`BETA_TEST_USER_B_EMAIL`, and `BETA_TEST_USER_B_PASSWORD`. It verifies
+owner-only SELECT/INSERT/UPDATE/DELETE, private object access, denial of signed-URL
+generation to anonymous and other users, signed-URL expiry, and reload from a second
+client. A normal `npm test` performs static policy checks but is not a substitute
+for this live test.
+
+Maintainers may instead run `npm run test:security:disposable` with the same public
+URL/key plus a server-only `SUPABASE_TEST_SERVICE_ROLE_KEY`. That wrapper creates two
+random confirmed accounts, runs the user-level test, removes test media, and deletes
+both accounts. Use it only from a trusted local or CI process; never expose the
+service-role value through a `VITE_` variable or browser bundle.
+
+### Phase 2A limitations
+
+- A Supabase project, email provider, Google provider, Edge Function secrets, and
+  Vercel variables are external configuration and are not activated by this repo.
+- Signed media URLs currently last five minutes and are renewed on a Route Lab
+  reload. Long-open tabs may need a refresh after a URL expires.
+- Referral email delivery depends on the deployed invitation function and configured
+  Supabase email service. The app does not claim an invite was sent when unavailable.
+- Referral conversion metrics are aggregate study-recruitment counts, not product
+  adoption data. Experience and climbing style are self-reported; body measurements
+  are optional.
+- Production launch still needs operational monitoring, abuse controls, retention
+  policy review, a data export process, and an independent security review.
+
 **Climbing is better together.**
 
 BETA is a mobile-first social climbing prototype built around **Climb → Capture → Share → Connect → Climb again**. It works for people who arrive with friends, families, partners, or alone. Optional adult partner discovery is available when someone needs a belayer or climbing buddy.
@@ -26,13 +143,13 @@ The Vite base remains `/BETA/` and the existing GitHub Pages workflow remains un
 
 ## Demo mode
 
-The current build is a frontend-only interactive demo. Fictional requests are visibly labeled, uploads stay in the current browser session, and no request, invitation, report, block, or share link reaches another person. It does not provide production authentication, server authorization, gym verification, moderation, durable media storage, or true private sharing.
+Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migration `0004_partner_matching.sql`, Find a Partner uses real consented adult accounts, server-side invitation transitions, confirmed sessions, blocks, and reports. Crews, challenges, the share wall, and social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
 
 The three home actions are independent:
 
 - **Share a Climb:** upload without a crew, session, or route annotation, then create a private-by-default share card.
 - **Climb With My Crew:** use a small friends/family group, copy a demo invite, open a recap, and plan another session.
-- **Find a Partner:** create availability, discover fictional adult requests, invite, simulate acceptance, confirm, block, and arrange another session.
+- **Find a Partner:** in configured mode, sign in and consent, create availability at one of five Bay Area Movement gyms, invite another tester, accept or decline, and confirm a session. In unconfigured mode the same information architecture uses visibly fictional local data.
 
 Clear site data for the local origin to reset the prototype. Product events are stored only in local demo state and are never sent as analytics.
 
@@ -64,12 +181,14 @@ Manual annotation is never required for social sharing.
 - `src/App.tsx`: preserved original route-learning experience
 - `supabase/migrations/0001_beta_social.sql`: reference schema and Row Level Security starting point for a real backend
 - `supabase/migrations/0002_security_and_sharing.sql`: private Storage, invitation/RSVP data, revocable share links, and expanded RLS policies
+- `supabase/migrations/0004_partner_matching.sql`: five Bay Area Movement locations plus adult-only discovery and atomic invitation/session RPCs
 - `supabase/functions/resolve-share/index.ts`: trusted share-token resolver that issues short-lived media URLs
 - `src/services/supabase.ts`: credential-aware Supabase client and private-media helpers
+- `src/services/partnerBackend.ts`: real availability, invitation, session, block, and report adapter
 - `src/platform.ts`: platform-independent media, sharing, and preference interfaces
 - `src/i18n.ts`: English and Simplified Chinese resources with persisted device preference
 
-Production should replace the demo adapter with Supabase Auth, Postgres, and a private Storage bucket. Apply the migration through the Supabase CLI only after review. Then add policies for membership writes, token exchange through an Edge Function, rate limiting, moderation, deletion/export, and guardian consent. Store only token hashes, issue short-lived signed media URLs after server-side authorization, and never put a service-role key in Vite client variables.
+The Route Lab research path uses Supabase Auth, Postgres, and private Storage when configured. Find a Partner uses authenticated server-side functions that expose only display name, self-reported experience, gym, and availability to other consented adults. Before converting the remaining social features, add audited media publishing, token exchange through an Edge Function, rate limiting, moderation operations, deletion/export, and guardian consent. Store only token hashes, issue short-lived signed media URLs after server-side authorization, and never put a service-role key in Vite client variables.
 
 ## Supabase setup
 
@@ -115,17 +234,22 @@ Completed locally:
 - Existing-friend invitation links, session proposals, RSVP confirmation, and repeat-session guards in demo mode
 - English/Simplified Chinese architecture and persistent toggle
 - PWA output, Capacitor configuration, Supabase client boundary, private Storage policies, and revocable link resolver
+- Email magic-link research login, optional gated Google OAuth, research consent, and account controls
+- Local-first Route Lab sync for routes, predictions, attempts, reflections, and private photo/video media
+- Owner-scoped research tables, private Storage helpers, account/media deletion, referral attribution, and aggregate recruitment metrics
+- Direct My Climbs -> share-card handoff, media-backed downloadable cards, an opt-in local share wall, and a landing-page product walkthrough
+- Real adult partner availability, discovery, invitations, acceptance/decline, session confirmation, blocking, and reporting when migration `0004` is applied
 
 Demo-only until a Supabase project is configured:
 
-- Fictional partner discovery and simulated acceptance
-- Invitation delivery, guest responses, RSVP delivery, blocks, reports, and analytics
+- Partner discovery only when Supabase is absent; configured deployments do not mix fictional climbers into the real board
+- Crew invitation delivery, guest challenge responses, RSVP delivery, and analytics
 - Local object-URL media and links, which are not private cross-device sharing
 
 Blocked on external configuration:
 
-- Real accounts and authentication delivery
-- Durable media upload and cross-device access
+- Activating real accounts, email delivery, and cross-device media in a Supabase pilot project
+- Live two-account RLS and private Storage verification against that configured project
 - Production moderation, rate limits, deletion/export, and guardian consent
 - TestFlight, App Store, and Play Store packages
 
@@ -138,7 +262,7 @@ Blocked on external configuration:
 
 ## Safety and privacy limitations
 
-This is not a production safety system. Adult confirmation, self-reported qualifications, blocking, reporting language, share revocation, and privacy controls are prototype interactions stored locally. A static GitHub Pages URL cannot make client-side media private, so the demo does not upload user media or claim its generated links are secure cross-device shares.
+This is not a production safety system. In configured mode, partner discovery is limited to consented adults and availability/invitation authorization is server-enforced; qualifications are still self-reported, reporting is not yet connected to a staffed moderation operation, and the pilot has no gym-verification integration. A static URL cannot make client-side demo media private. Only the configured Route Lab research path uploads to private Supabase Storage; local social wall/share links are not secure cross-device publishing.
 
 Before real users: implement authenticated server-enforced authorization, content moderation, rate limits, encrypted private storage, audited signed-link access, revocation, consent records for everyone shown in media, and guardian-managed minor accounts that cannot access adult matching.
 
