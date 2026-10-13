@@ -86,7 +86,7 @@ function FindCrew({ demo, update, notify, onAccount }: { demo: DemoState; update
   const [remoteError, setRemoteError] = useState('')
   const realMode = Boolean(backendConfigured && auth.session && auth.profile?.consentedAt)
   const selectedGym = movementGymByName(gym)
-  const visibleDemo = demo.requests.filter(request => isRequestActive(request) && request.gym === gym && !demo.safety.blockedIds.includes(request.personId))
+  const visibleDemo = backendConfigured ? [] : demo.requests.filter(request => isRequestActive(request) && request.gym === gym && !demo.safety.blockedIds.includes(request.personId))
 
   const refresh = async () => {
     if (!realMode) return
@@ -110,6 +110,10 @@ function FindCrew({ demo, update, notify, onAccount }: { demo: DemoState; update
       try { setLoading(true); await partnerBackend.create({ ownerId: auth.session.user.id, gymId: selectedGym.id, startsAt: starts.toISOString(), endsAt: ends.toISOString(), disciplines: [discipline], lookingFor: String(data.get('lookingFor')), message: String(data.get('message') || '') }); closeForm(); await refresh(); notify(t('find.liveNotice')) }
       catch (cause) { setFormError(cause instanceof Error ? cause.message : 'Could not publish availability.') }
       finally { setLoading(false) }
+      return
+    }
+    if (backendConfigured) {
+      setFormError('Sign in and complete adult consent before publishing availability.')
       return
     }
     const request: AvailabilityRequest = { id: uid(), personId: 'you', personName: 'You', avatar: 'A', gym, startsAt: starts.toISOString(), endsAt: ends.toISOString(), disciplines: [discipline], lookingFor: String(data.get('lookingFor')), experience: String(data.get('experience') || ''), message: String(data.get('message') || ''), status: 'active', selfReported: true, fictional: true }

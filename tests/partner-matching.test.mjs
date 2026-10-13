@@ -44,6 +44,11 @@ test('connected account copy distinguishes real and local-only features', () => 
   assert.doesNotMatch(accountModal, /matching remain demo-only/)
 })
 
+test('connected deployments never fall back to fictional matching actions', () => {
+  assert.match(app, /const visibleDemo = backendConfigured \? \[\] : demo\.requests\.filter/)
+  assert.match(app, /if \(backendConfigured\) \{[\s\S]*?complete adult consent before publishing availability/)
+})
+
 test('share card handoff and media-backed download are explicit', () => {
   assert.match(app, /climbs\.manageShare/)
   assert.match(copy, /manageShare: 'View or manage sharing →'/)
