@@ -39,8 +39,8 @@ test('invitation acceptance is an atomic server-side session transition', () => 
 
 test('connected account copy distinguishes real and local-only features', () => {
   assert.match(accountModal, /Pilot backend connected/)
-  assert.match(accountModal, /Real adult partner matching is available/)
-  assert.match(accountModal, /Crews, challenges, and the Share Wall remain stored locally/)
+  assert.match(accountModal, /adult partner matching, private crews, and crew membership sync/)
+  assert.match(accountModal, /Challenges and the Share Wall remain stored locally/)
   assert.doesNotMatch(accountModal, /matching remain demo-only/)
 })
 
@@ -65,10 +65,12 @@ test('Route Lab retains product navigation and a visible return action', () => {
   assert.match(app, /routeLab\.context\.back/)
 })
 
-test('crew invitations share useful text without a dead join link', () => {
+test('crew invitations use real join links only when the backend is connected', () => {
   assert.match(app, /channel: 'share'/)
   assert.match(app, /crewFlow\.inviteText/)
-  assert.doesNotMatch(app, /\?crewInvite=/)
+  assert.match(app, /\?crewInvite=/)
+  assert.match(app, /backendConfigured \? <MyCrewPersistent/)
+  assert.match(app, /: <MyCrewV2/)
   assert.match(platform, /\[input\.text, input\.url\]\.filter\(Boolean\)\.join/)
 })
 

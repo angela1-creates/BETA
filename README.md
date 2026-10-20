@@ -6,8 +6,9 @@ This branch adds a consent-based Supabase research path for Route Lab. Signed-in
 consented testers can keep private routes, predictions, attempts, reflections, and
 climbing media across browsers. Local Route Lab drafts continue to work when the
 backend is unavailable or before a tester signs in. Adult partner matching can also
-run against Supabase after migration `0004_partner_matching.sql`; crews, challenges,
-and social media sharing remain local demos in this release.
+run against Supabase after migration `0004_partner_matching.sql`. Migration
+`0005_persistent_crews.sql` adds private, persistent crews and secure, revocable
+invitation links. Challenges and social media sharing remain local demos in this release.
 
 The implemented flow is:
 
@@ -143,12 +144,12 @@ The Vite base remains `/BETA/` and the existing GitHub Pages workflow remains un
 
 ## Demo mode
 
-Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migration `0004_partner_matching.sql`, Find a Partner uses real consented adult accounts, server-side invitation transitions, confirmed sessions, blocks, and reports. Crews, challenges, the share wall, and social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
+Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migrations through `0005_persistent_crews.sql`, Find a Partner uses real consented adult accounts, server-side invitation transitions, confirmed sessions, blocks, and reports; My Crew stores private crew membership and supports secure, expiring, revocable invitations. Crew sessions and recaps, challenges, the share wall, and social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
 
 The three home actions are independent:
 
 - **Share a Climb:** upload without a crew, session, or route annotation, then create a private-by-default share card.
-- **Climb With My Crew:** use a small friends/family group, copy a demo invite, open a recap, and plan another session.
+- **Climb With My Crew:** in configured mode, create a persistent private crew and invite another consenting adult through an expiring, revocable link. In demo mode, create a local crew, open a recap, and plan another session.
 - **Find a Partner:** in configured mode, sign in and consent, create availability at one of five Bay Area Movement gyms, invite another tester, accept or decline, and confirm a session. In unconfigured mode the same information architecture uses visibly fictional local data.
 
 Clear site data for the local origin to reset the prototype. Product events are stored only in local demo state and are never sent as analytics.
@@ -182,6 +183,7 @@ Manual annotation is never required for social sharing.
 - `supabase/migrations/0001_beta_social.sql`: reference schema and Row Level Security starting point for a real backend
 - `supabase/migrations/0002_security_and_sharing.sql`: private Storage, invitation/RSVP data, revocable share links, and expanded RLS policies
 - `supabase/migrations/0004_partner_matching.sql`: five Bay Area Movement locations plus adult-only discovery and atomic invitation/session RPCs
+- `supabase/migrations/0005_persistent_crews.sql`: atomic crew creation, member-only reads, and hashed-token invitation acceptance/revocation
 - `supabase/functions/resolve-share/index.ts`: trusted share-token resolver that issues short-lived media URLs
 - `src/services/supabase.ts`: credential-aware Supabase client and private-media helpers
 - `src/services/partnerBackend.ts`: real availability, invitation, session, block, and report adapter
@@ -194,7 +196,7 @@ The Route Lab research path uses Supabase Auth, Postgres, and private Storage wh
 
 No backend is connected by default. Without credentials, the application remains in clearly marked local demo mode and does not display backend-dependent success messages.
 
-1. Create a Supabase project and review both files in `supabase/migrations/`.
+1. Create a Supabase project and review every numbered file in `supabase/migrations/`.
 2. Apply the migrations in order with the Supabase CLI.
 3. Deploy `supabase/functions/resolve-share` and set its server-only `SUPABASE_SERVICE_ROLE_KEY` secret.
 4. Copy `.env.example` to `.env.local` and add only the project URL and public anon key.
@@ -239,11 +241,12 @@ Completed locally:
 - Owner-scoped research tables, private Storage helpers, account/media deletion, referral attribution, and aggregate recruitment metrics
 - Direct My Climbs -> share-card handoff, media-backed downloadable cards, an opt-in local share wall, and a landing-page product walkthrough
 - Real adult partner availability, discovery, invitations, acceptance/decline, session confirmation, blocking, and reporting when migration `0004` is applied
+- Persistent private crews, member-only visibility, atomic invitation acceptance, and revocable seven-day crew links when migration `0005` is applied
 
 Demo-only until a Supabase project is configured:
 
 - Partner discovery only when Supabase is absent; configured deployments do not mix fictional climbers into the real board
-- Crew invitation delivery, guest challenge responses, RSVP delivery, and analytics
+- Crew session/recap persistence, guest challenge responses, RSVP delivery, and analytics
 - Local object-URL media and links, which are not private cross-device sharing
 
 Blocked on external configuration:
@@ -262,7 +265,7 @@ Blocked on external configuration:
 
 ## Safety and privacy limitations
 
-This is not a production safety system. In configured mode, partner discovery is limited to consented adults and availability/invitation authorization is server-enforced; qualifications are still self-reported, reporting is not yet connected to a staffed moderation operation, and the pilot has no gym-verification integration. A static URL cannot make client-side demo media private. Only the configured Route Lab research path uploads to private Supabase Storage; local social wall/share links are not secure cross-device publishing.
+This is not a production safety system. In configured mode, partner discovery is limited to consented adults; availability, partner invitations, crew membership, and crew invitation transitions are server-authorized. Crew links contain a high-entropy secret, store only its hash, expire after seven days, and can be revoked, but they are bearer links: anyone who receives an active link can view its limited preview and a consented adult account can accept it. Qualifications are still self-reported, reporting is not yet connected to a staffed moderation operation, and the pilot has no gym-verification integration. A static URL cannot make client-side demo media private. Only the configured Route Lab research path uploads to private Supabase Storage; local social wall/share links are not secure cross-device publishing.
 
 Before real users: implement authenticated server-enforced authorization, content moderation, rate limits, encrypted private storage, audited signed-link access, revocation, consent records for everyone shown in media, and guardian-managed minor accounts that cannot access adult matching.
 
