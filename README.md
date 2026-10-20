@@ -76,9 +76,18 @@ VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
 VITE_SUPABASE_GOOGLE_ENABLED=false
 ```
 
-For GitHub Pages, keep `VITE_BASE_PATH=/BETA/`. The anon key is intentionally
-public; privacy comes from Row Level Security and Storage policies, not from hiding
-that key.
+For GitHub Pages, the workflow keeps the default `/BETA/` base path. Add these in
+GitHub under **Settings -> Secrets and variables -> Actions**, then rerun the Pages
+workflow:
+
+- Repository variable `VITE_SUPABASE_URL`
+- Actions secret `VITE_SUPABASE_ANON_KEY`
+- Repository variable `VITE_SUPABASE_GOOGLE_ENABLED` (`true` or `false`)
+
+The workflow now stops instead of silently publishing the fictional demo when the
+URL or anon key is missing. The anon key is a browser-safe public key; privacy comes
+from Row Level Security and Storage policies, not from hiding that key. It is stored
+as an Actions secret here to avoid printing it in workflow configuration or logs.
 
 ### Two-account authorization verification
 
@@ -140,7 +149,9 @@ npm run build
 npm run preview
 ```
 
-The Vite base remains `/BETA/` and the existing GitHub Pages workflow remains unchanged.
+The Vite base remains `/BETA/`. The GitHub Pages workflow requires the configured
+Supabase URL and public anon key so the public site cannot silently fall back to the
+fictional demo.
 
 ## Demo mode
 
