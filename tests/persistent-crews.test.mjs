@@ -50,3 +50,12 @@ test('crew invitation survives magic-link and OAuth redirects', () => {
   assert.match(auth, /\['crewInvite', 'ref'\]/)
   assert.match(app, /URLSearchParams\(location\.search\)\.get\('crewInvite'\)/)
 })
+
+test('connected crew share preserves the browser user gesture', () => {
+  const persistentCrew = app.match(/function MyCrewPersistent[\s\S]*?function MyCrewV2/)?.[0] || ''
+  const prepare = persistentCrew.match(/const openInvite[\s\S]*?const closeInvite/)?.[0] || ''
+  const send = persistentCrew.match(/const sendInvite[\s\S]*?const revoke/)?.[0] || ''
+  assert.match(prepare, /crewBackend\.createInvitation/)
+  assert.doesNotMatch(send, /crewBackend\.createInvitation/)
+  assert.match(send, /platform\.share\.share\([\s\S]*preparedInvite\.url/)
+})
