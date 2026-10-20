@@ -18,6 +18,7 @@ import './social-fixes.css'
 type Screen = 'home' | 'find' | 'climbs' | 'share' | 'crew' | 'learn'
 const uid = () => Math.random().toString(36).slice(2, 10)
 const formatTime = (value: string) => new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
+const errorMessage = (cause: unknown, fallback: string) => cause instanceof Error ? cause.message : typeof cause === 'object' && cause !== null && 'message' in cause && typeof cause.message === 'string' ? cause.message : fallback
 const initialScreen = (): Screen => {
   const requested = new URLSearchParams(location.search).get('screen')
   return requested && ['home', 'find', 'climbs', 'share', 'crew', 'learn'].includes(requested) ? requested as Screen : 'home'
@@ -249,7 +250,7 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
     try {
       const [crews, invitations] = await Promise.all([crewBackend.list(), crewBackend.invitations()])
       setRemoteCrews(crews); setRemoteInvites(invitations)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    } catch (cause) { setError(errorMessage(cause, t('crewFlow.loadError'))) }
     finally { setLoading(false) }
   }
   useEffect(() => { void refresh() }, [realMode])
@@ -276,7 +277,7 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
         update({ ...demo, crews: [crew, ...demo.crews] }, 'crew_created')
       }
       setBuilder(false); setCrewName(''); notify(realMode ? t('crew.created') : t('crew.demoCreated'))
-    } catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    } catch (cause) { setError(errorMessage(cause, t('crewFlow.loadError'))) }
     finally { setBusy(false) }
   }
 
@@ -297,7 +298,7 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
         url: `${location.origin}${location.pathname}?crewInvite=${encodeURIComponent(invitation.token)}`,
       })
     } catch (cause) {
-      if (invitePreparation.current === preparation) setError(cause instanceof Error ? cause.message : t('crewFlow.loadError'))
+      if (invitePreparation.current === preparation) setError(errorMessage(cause, t('crewFlow.loadError')))
     } finally {
       if (invitePreparation.current === preparation) setBusy(false)
     }
@@ -310,7 +311,7 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
     if (!invitation) return
     setBusy(true)
     try { await crewBackend.revokeInvitation(invitation.id); await refresh() }
-    catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    catch (cause) { setError(errorMessage(cause, t('crewFlow.loadError'))) }
     finally { setBusy(false) }
   }
 
@@ -334,21 +335,21 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
       }
       setInviteCrew(null); setInvitee('')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('crewFlow.loadError'))
+      setError(errorMessage(cause, t('crewFlow.loadError')))
     } finally { setBusy(false) }
   }
 
   const revoke = async (invitationId: string) => {
     setBusy(true); setError('')
     try { await crewBackend.revokeInvitation(invitationId); await refresh(); notify(t('crewFlow.inviteRevoked')) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    catch (cause) { setError(errorMessage(cause, t('crewFlow.loadError'))) }
     finally { setBusy(false) }
   }
   const removeMember = async (crew: CrewCardModel, memberId: string, displayName: string) => {
     if (!window.confirm(t('crewFlow.removeMember', { name: displayName }))) return
     setBusy(true); setError('')
     try { await crewBackend.removeMember(crew.id, memberId); await refresh() }
-    catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    catch (cause) { setError(errorMessage(cause, t('crewFlow.loadError'))) }
     finally { setBusy(false) }
   }
   const leaveOrDelete = async (crew: CrewCardModel) => {
@@ -356,7 +357,7 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
     if (!window.confirm(label)) return
     setBusy(true); setError('')
     try { if (crew.role === 'owner') await crewBackend.delete(crew.id); else await crewBackend.leave(crew.id); await refresh(); notify(t('crewFlow.crewRemoved')) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    catch (cause) { setError(errorMessage(cause, t('crewFlow.loadError'))) }
     finally { setBusy(false) }
   }
   const kindLabel = (crew: CrewCardModel) => t(`crew.${crew.kind === 'Gym group' ? 'gymGroup' : crew.kind.toLowerCase()}`)
@@ -365,10 +366,10 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
     <PageTitle kicker={t('crew.kicker')} title={t('crew.title')} text={t('crew.subtitle')} action={<button className="primary-button" disabled={auth.loading || busy} onClick={() => backendConfigured && !realMode ? onAccount() : setBuilder(true)}>＋ {t('crew.new')}</button>}/>
     {backendConfigured && !realMode && <section className="connection-callout"><div><span className="kicker">{t('common.live')}</span><h2>{t('crewFlow.connectedTitle')}</h2><p>{t('crewFlow.connectedHelp')}</p></div><button className="primary-button coral" onClick={onAccount}>{t('crewFlow.openAccount')}</button></section>}
     {builder && <AccessibleModal title={t('crew.new')} onClose={() => setBuilder(false)}><label>{t('crew.crewName')}<input value={crewName} onChange={event => setCrewName(event.target.value)} maxLength={60} placeholder="Friday Senders"/></label><label>{t('crew.groupType')}<select value={kind} onChange={event => setKind(event.target.value as Crew['kind'])}><option value="Friends">{t('crew.friends')}</option><option value="Couple">{t('crew.couple')}</option><option value="Family">{t('crew.family')}</option><option value="Gym group">{t('crew.gymGroup')}</option></select></label><div className="confirm-actions"><button className="secondary-button" onClick={() => setBuilder(false)}>{t('common.discard')}</button><button className="primary-button" disabled={busy || !crewName.trim()} onClick={() => void createCrew()}>{t('common.confirm')}</button></div></AccessibleModal>}
-    {inviteCrew && <AccessibleModal title={t('crew.inviteTitle')} onClose={() => void closeInvite()}><p>{t('crewFlow.inviteHelp')}</p><label>{t('crewFlow.invitee')}<input value={invitee} onChange={event => setInvitee(event.target.value)} placeholder={t('crewFlow.invitePlaceholder')}/></label>{inviteCrew.remote && <p className="local-draft-note">{t('crewFlow.inviteExpires')}</p>}<div className="confirm-actions"><button className="secondary-button" disabled={busy} onClick={() => void closeInvite()}>{t('common.cancel')}</button><button className="primary-button coral" disabled={busy || (inviteCrew.remote && !preparedInvite)} onClick={() => void sendInvite()}>{t('crewFlow.shareInvite')}</button></div></AccessibleModal>}
+    {inviteCrew && <AccessibleModal title={t('crew.inviteTitle')} onClose={() => void closeInvite()}><p>{t('crewFlow.inviteHelp')}</p><label>{t('crewFlow.invitee')}<input value={invitee} onChange={event => setInvitee(event.target.value)} placeholder={t('crewFlow.invitePlaceholder')}/></label>{inviteCrew.remote && <p className="local-draft-note">{t('crewFlow.inviteExpires')}</p>}{error && <p className="form-error" role="alert">{error}</p>}<div className="confirm-actions"><button className="secondary-button" disabled={busy} onClick={() => void closeInvite()}>{t('common.cancel')}</button><button className="primary-button coral" disabled={busy || (inviteCrew.remote && !preparedInvite)} onClick={() => void sendInvite()}>{t('crewFlow.shareInvite')}</button></div></AccessibleModal>}
     {error && <p className="form-error board-error" role="alert">{error}</p>}
     {loading && <p className="loading-state" role="status">{t('crewFlow.loading')}</p>}
-    {realMode && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crewFlow.connectedTitle')}</h2><p>{t('crewFlow.sessionNext')}</p></div></section>}
+    {realMode && !error && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crewFlow.connectedTitle')}</h2><p>{t('crewFlow.sessionNext')}</p></div></section>}
     {!backendConfigured && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crew.ready')}</h2><p>{t('crew.subtitle')}</p></div><button className="primary-button pale" onClick={onFind}>{t('home.find')} <Icon name="arrow"/></button></section>}
     <section className="section-block"><div className="section-heading"><div><span className="kicker">{t('crew.groupsLabel')}</span><h2>{t('crew.groups')}</h2></div></div>
       {!loading && realMode && crews.length === 0 && <p className="section-empty-copy">{t('crewFlow.noCrews')}</p>}
