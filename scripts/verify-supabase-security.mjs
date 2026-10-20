@@ -20,6 +20,8 @@ const expectNoRows = (label, result) => {
   if (result.error) throw new Error(`${label}: unexpected API error: ${result.error.message}`)
   if ((result.data || []).length) throw new Error(`${label}: cross-account rows were exposed`)
 }
+const inviteToken = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('')
+const hashToken = async token => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))), byte => byte.toString(16).padStart(2, '0')).join('')
 
 const userA = await signIn(a, process.env.BETA_TEST_USER_A_EMAIL, process.env.BETA_TEST_USER_A_PASSWORD)
 const userB = await signIn(b, process.env.BETA_TEST_USER_B_EMAIL, process.env.BETA_TEST_USER_B_PASSWORD)
@@ -68,5 +70,38 @@ await signIn(secondDevice, process.env.BETA_TEST_USER_A_EMAIL, process.env.BETA_
 const reloaded = await secondDevice.from('route_attempts').select('id').eq('id', attempt.id).single()
 if (reloaded.error || !reloaded.data) throw new Error('A could not reload saved data from a second client')
 
+const { data: crewId, error: crewError } = await a.rpc('create_crew', { p_name: 'Security test crew', p_kind: 'Friends', p_guardian_managed: false })
+if (crewError) throw crewError
+expectNoRows('B SELECT crew before invitation acceptance', await b.from('crews').select('*').eq('id', crewId))
+expectNoRows('B SELECT membership before invitation acceptance', await b.from('crew_members').select('*').eq('crew_id', crewId))
+
+const token = inviteToken()
+const tokenHash = await hashToken(token)
+const invitation = await a.rpc('create_crew_invitation', { p_crew_id: crewId, p_token_hash: tokenHash })
+if (invitation.error) throw invitation.error
+const preview = await anonymous.rpc('resolve_crew_invitation', { p_token_hash: tokenHash })
+if (preview.error || preview.data?.length !== 1) throw new Error('Anonymous invitee could not resolve the limited crew invitation preview')
+if (JSON.stringify(preview.data).match(/email|height_cm|wingspan_cm/)) throw new Error('Crew invitation preview exposed private profile fields')
+const acceptance = await b.rpc('respond_crew_invitation', { p_token_hash: tokenHash, p_response: 'accepted' })
+if (acceptance.error) throw acceptance.error
+const joined = await b.rpc('my_crews')
+if (joined.error || !joined.data?.some(crew => crew.id === crewId)) throw new Error('Accepted crew did not persist for Tester B')
+const removeMember = await a.rpc('remove_crew_member', { p_crew_id: crewId, p_profile_id: userB.id })
+if (removeMember.error) throw removeMember.error
+const afterRemoval = await b.rpc('my_crews')
+if (afterRemoval.error || afterRemoval.data?.some(crew => crew.id === crewId)) throw new Error('Removed member retained crew access')
+
+const revokedToken = inviteToken()
+const revokedHash = await hashToken(revokedToken)
+const revocable = await a.rpc('create_crew_invitation', { p_crew_id: crewId, p_token_hash: revokedHash })
+if (revocable.error) throw revocable.error
+const invitationId = Array.isArray(revocable.data) ? revocable.data[0]?.id : revocable.data?.id
+const revocation = await a.rpc('revoke_crew_invitation', { p_invitation_id: invitationId })
+if (revocation.error) throw revocation.error
+const revokedPreview = await anonymous.rpc('resolve_crew_invitation', { p_token_hash: revokedHash })
+if (revokedPreview.error || revokedPreview.data?.length) throw new Error('Revoked crew invitation remained resolvable')
+const deleteCrew = await a.rpc('delete_crew', { p_crew_id: crewId })
+if (deleteCrew.error) throw deleteCrew.error
+
 await a.from('research_routes').delete().eq('id', route.id)
-console.log('PASS: two-account CRUD isolation, second-client persistence, private media, signed URL authorization, and expiry verified.')
+console.log('PASS: two-account CRUD isolation, crew membership boundaries, invitation acceptance/revocation, second-client persistence, private media, signed URL authorization, and expiry verified.')

@@ -29,7 +29,15 @@ const client = () => {
   return supabase
 }
 
-const redirectUrl = () => `${location.origin}${import.meta.env.BASE_URL}`
+const redirectUrl = () => {
+  const target = new URL(import.meta.env.BASE_URL, location.origin)
+  const current = new URLSearchParams(location.search)
+  for (const key of ['crewInvite', 'ref']) {
+    const value = current.get(key)
+    if (value) target.searchParams.set(key, value)
+  }
+  return target.toString()
+}
 const currentUser = async (): Promise<User> => {
   const { data, error } = await client().auth.getUser()
   if (error) throw error

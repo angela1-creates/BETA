@@ -12,6 +12,7 @@ import { backendConfigured } from './services/supabase'
 import { platform, type MediaDraft } from './platform'
 import { MOVEMENT_GYMS, movementGymByName } from './movementGyms'
 import { partnerBackend, type PartnerActivity, type PartnerRequest } from './services/partnerBackend'
+import { crewBackend, type CrewInvitationPreview, type CrewInvitationRecord, type CrewRecord } from './services/crewBackend'
 import './social-fixes.css'
 
 type Screen = 'home' | 'find' | 'climbs' | 'share' | 'crew' | 'learn'
@@ -31,15 +32,17 @@ export default function SocialApp() {
   const [accountOpen, setAccountOpen] = useState(false)
   const [shareClimbId, setShareClimbId] = useState('')
   const sharedToken = new URLSearchParams(location.search).get('shared')
+  const crewInviteToken = new URLSearchParams(location.search).get('crewInvite')
   useEffect(() => { saveDemoState(demo) }, [demo])
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(''), 2800); return () => window.clearTimeout(timer) }, [toast])
   const update = (next: DemoState, event?: string) => setDemo(event ? trackEvent(next, event) : next)
   useEffect(() => { const onPopState = () => setScreen(initialScreen()); window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState) }, [])
   const navigate = (next: Screen) => { setScreen(next); history.pushState({ screen: next }, '', screenHref(location.pathname, location.search, next)); window.scrollTo(0, 0) }
+  if (crewInviteToken) return <div className="app-shell social-shell"><CrewInvitationView token={crewInviteToken} onAccount={() => setAccountOpen(true)}/>{accountOpen && <ResearchAccountModal onClose={() => setAccountOpen(false)}/>}</div>
   if (sharedToken) return <SharedView demo={demo} token={sharedToken}/>
   if (screen === 'learn') return <div className="app-shell social-shell route-lab-shell"><Header screen={screen} onNavigate={navigate} language={i18n.language} onLanguage={language => void i18n.changeLanguage(language)} accountLabel={auth.session?.user.email?.[0]?.toUpperCase() || 'A'} onAccount={() => setAccountOpen(true)}/><div className="route-lab-return"><button className="text-button" onClick={() => navigate('climbs')}>{t('routeLab.context.back')}</button><span><strong>{t('routeLab.context.title')}</strong><small>{t('routeLab.context.subtitle')}</small></span></div><div className="nested-lab"><LegacyRouteLab /></div>{accountOpen && <ResearchAccountModal onClose={() => setAccountOpen(false)}/>}</div>
   return <div className="app-shell social-shell"><Header screen={screen} onNavigate={navigate} language={i18n.language} onLanguage={language => void i18n.changeLanguage(language)} accountLabel={auth.session?.user.email?.[0]?.toUpperCase() || 'A'} onAccount={() => setAccountOpen(true)}/><DemoBanner/>
-    {screen === 'home' && <Home onNavigate={navigate} demo={demo}/>} {screen === 'find' && <FindCrew demo={demo} update={update} notify={setToast} onAccount={() => setAccountOpen(true)}/>} {screen === 'climbs' && <MyClimbs demo={demo} update={update} notify={setToast} onLearn={() => navigate('learn')} onShare={id => { setShareClimbId(id); navigate('share') }}/>} {screen === 'share' && <ShareHub demo={demo} update={update} notify={setToast} initialSelected={shareClimbId}/>} {screen === 'crew' && <MyCrewV2 demo={demo} update={update} notify={setToast} onFind={() => navigate('find')}/>} {toast && <div className="toast" role="status" aria-live="polite">✓ {toast}</div>}
+    {screen === 'home' && <Home onNavigate={navigate} demo={demo}/>} {screen === 'find' && <FindCrew demo={demo} update={update} notify={setToast} onAccount={() => setAccountOpen(true)}/>} {screen === 'climbs' && <MyClimbs demo={demo} update={update} notify={setToast} onLearn={() => navigate('learn')} onShare={id => { setShareClimbId(id); navigate('share') }}/>} {screen === 'share' && <ShareHub demo={demo} update={update} notify={setToast} initialSelected={shareClimbId}/>} {screen === 'crew' && (backendConfigured ? <MyCrewPersistent demo={demo} update={update} notify={setToast} onFind={() => navigate('find')} onAccount={() => setAccountOpen(true)}/> : <MyCrewV2 demo={demo} update={update} notify={setToast} onFind={() => navigate('find')}/>)} {toast && <div className="toast" role="status" aria-live="polite">✓ {toast}</div>}
     {accountOpen && <ResearchAccountModal onClose={() => setAccountOpen(false)}/>}
   </div>
 }
@@ -171,6 +174,180 @@ function Challenges({ demo, update, notify, enableLink, share }: { demo: DemoSta
   const { t } = useTranslation(); const challenge = demo.challenges[0]; const [response, setResponse] = useState(''); if (!challenge) return <div className="wall-empty"><span>?</span><p>{t('share.noChallenge')}</p></div>
   const join = () => { if (!response.trim()) return; const item = { id: uid(), personName: 'You', caption: 'My prediction, saved behind the spoiler.', move: response, revealed: false }; update({ ...demo, challenges: demo.challenges.map(entry => entry.id === challenge.id ? { ...entry, responses: [...entry.responses, item] } : entry) }, 'challenge_joined'); setResponse(''); notify(t('share.responseSaved')) }
   return <section className="challenge-layout"><div className="challenge-media"><img src={challenge.mediaUrl} alt="Route in beta challenge"/><div><span>{t('share.spoiler')}</span><h2>{challenge.prompt}</h2></div></div><div className="challenge-panel"><span className="privacy-pill">⌁ {t('share.privateDefault')}</span><h2>{challenge.title}</h2><p>{t('share.predictFirst')}</p><label>{t('share.response')}<textarea value={response} onChange={event => setResponse(event.target.value)} placeholder={t('share.responsePlaceholder')}/></label><button className="primary-button full" onClick={join}>{t('share.lock')}</button><div className="response-stack"><strong>{t('share.hiddenResponses', { count: challenge.responses.length })}</strong><p>{challenge.revealResponses ? t('share.revealedHelp') : t('share.hiddenHelp')}</p><button className="secondary-button full" onClick={() => update({ ...demo, challenges: demo.challenges.map(item => item.id === challenge.id ? { ...item, revealResponses: !item.revealResponses } : item) })}>{challenge.revealResponses ? t('share.hideResponses') : t('share.revealResponses')}</button>{challenge.revealResponses && challenge.responses.map(item => <div className="revealed-response" key={item.id}><b>{item.personName}</b><span>{item.move}</span></div>)}</div>{!challenge.shareToken ? <button className="text-button full" onClick={() => enableLink(challenge.id)}>{t('share.createPrivateLink')}</button> : <><button className="primary-button coral full" onClick={() => share(challenge.id)}>{t('share.shareChallenge')}</button><button className="text-button full" onClick={() => { update({ ...demo, challenges: demo.challenges.map(item => item.id === challenge.id ? { ...item, shareToken: undefined } : item) }); notify(t('share.challengeRevoked')) }}>{t('share.revokeChallenge')}</button></>}</div></section>
+}
+
+type CrewCardModel = {
+  id: string
+  name: string
+  kind: Crew['kind']
+  guardianManaged: boolean
+  role: 'owner' | 'member'
+  remote: boolean
+  members: { id: string; displayName: string; role: 'owner' | 'member' }[]
+}
+
+function CrewInvitationView({ token, onAccount }: { token: string; onAccount: () => void }) {
+  const { t } = useTranslation()
+  const auth = useResearchAuth()
+  const [preview, setPreview] = useState<CrewInvitationPreview | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<'accepted' | 'declined' | ''>('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    if (!backendConfigured) { setError(t('crewFlow.unavailable')); setLoading(false); return () => { active = false } }
+    void crewBackend.resolveInvitation(token)
+      .then(value => { if (!active) return; if (value) setPreview(value); else setError(t('crewFlow.unavailable')) })
+      .catch(cause => { if (active) setError(cause instanceof Error ? cause.message : t('crewFlow.unavailable')) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [token, t])
+
+  const respond = async (response: 'accepted' | 'declined') => {
+    if (!auth.session || !auth.profile?.consentedAt) { onAccount(); return }
+    setBusy(true); setError('')
+    try { await crewBackend.respondToInvitation(token, response); setResult(response) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.unavailable')) }
+    finally { setBusy(false) }
+  }
+  const openCrew = () => location.assign(`${location.pathname}?screen=crew`)
+  const backHome = () => location.assign(location.pathname)
+
+  return <main className="crew-invitation-view"><button className="logo" onClick={backHome}><span>β</span>BETA</button><section className="invitation-panel"><span className="kicker">{t('crewFlow.invitationKicker')}</span><h1>{t('crewFlow.invitationTitle')}</h1>
+    {loading && <p role="status">{t('crewFlow.loading')}</p>}
+    {!loading && result === 'accepted' && <div className="invitation-result"><span>✓</span><h2>{t('crewFlow.accepted', { crew: preview?.crewName })}</h2><button className="primary-button coral" onClick={openCrew}>{t('crewFlow.openCrew')}</button></div>}
+    {!loading && result === 'declined' && <div className="invitation-result"><h2>{t('crewFlow.declined')}</h2><button className="secondary-button" onClick={backHome}>{t('crewFlow.backHome')}</button></div>}
+    {!loading && !result && preview && <><p className="invitation-lead">{t('crewFlow.invitedBy', { name: preview.inviterName, crew: preview.crewName })}</p><p className="local-draft-note">{t('crewFlow.invitationExpiry', { date: formatTime(preview.expiresAt) })}</p>
+      {!auth.session ? <><p>{t('crewFlow.signInToJoin')}</p><button className="primary-button coral full" onClick={onAccount}>{t('crewFlow.openAccount')}</button></> : !auth.profile?.consentedAt ? <><p>{t('crewFlow.consentToJoin')}</p><button className="primary-button coral full" onClick={onAccount}>{t('crewFlow.openAccount')}</button></> : <div className="confirm-actions"><button className="secondary-button" disabled={busy} onClick={() => void respond('declined')}>{t('crewFlow.declineInvitation')}</button><button className="primary-button coral" disabled={busy} onClick={() => void respond('accepted')}>{busy ? t('crewFlow.accepting') : t('crewFlow.acceptInvitation')}</button></div>}
+    </>}
+    {error && <p className="form-error" role="alert">{error}</p>}
+  </section></main>
+}
+
+function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: DemoState; update: (state: DemoState, event?: string) => void; notify: (value: string) => void; onFind: () => void; onAccount: () => void }) {
+  const { t } = useTranslation()
+  const auth = useResearchAuth()
+  const realMode = Boolean(backendConfigured && auth.session && auth.profile?.consentedAt)
+  const [remoteCrews, setRemoteCrews] = useState<CrewRecord[]>([])
+  const [remoteInvites, setRemoteInvites] = useState<CrewInvitationRecord[]>([])
+  const [loading, setLoading] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [builder, setBuilder] = useState(false)
+  const [crewName, setCrewName] = useState('')
+  const [kind, setKind] = useState<Crew['kind']>('Friends')
+  const [inviteCrew, setInviteCrew] = useState<CrewCardModel | null>(null)
+  const [invitee, setInvitee] = useState('')
+
+  const refresh = async () => {
+    if (!realMode) { setRemoteCrews([]); setRemoteInvites([]); return }
+    setLoading(true); setError('')
+    try {
+      const [crews, invitations] = await Promise.all([crewBackend.list(), crewBackend.invitations()])
+      setRemoteCrews(crews); setRemoteInvites(invitations)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { void refresh() }, [realMode])
+
+  const localCards: CrewCardModel[] = backendConfigured ? [] : demo.crews.map(crew => ({
+    id: crew.id, name: crew.name, kind: crew.kind, guardianManaged: Boolean(crew.guardianManaged), role: 'owner', remote: false,
+    members: crew.members.map((displayName, index) => ({ id: `${crew.id}-${index}`, displayName, role: index === 0 ? 'owner' : 'member' })),
+  }))
+  const remoteCards: CrewCardModel[] = remoteCrews.map(crew => ({
+    id: crew.id, name: crew.name, kind: crew.kind, guardianManaged: crew.guardianManaged, role: crew.role, remote: true,
+    members: crew.members.map(member => ({ id: member.id, displayName: member.displayName, role: member.role })),
+  }))
+  const crews = realMode ? remoteCards : localCards
+
+  const createCrew = async () => {
+    const name = crewName.trim()
+    if (!name || crews.some(item => item.name.toLowerCase() === name.toLowerCase())) return notify(t('status.duplicate'))
+    if (backendConfigured && !realMode) { onAccount(); return }
+    setBusy(true); setError('')
+    try {
+      if (realMode) { await crewBackend.create({ name, kind, guardianManaged: kind === 'Family' }); await refresh() }
+      else {
+        const crew: Crew = { id: uid(), name, kind, members: ['You'], private: true, guardianManaged: kind === 'Family' }
+        update({ ...demo, crews: [crew, ...demo.crews] }, 'crew_created')
+      }
+      setBuilder(false); setCrewName(''); notify(realMode ? t('crew.created') : t('crew.demoCreated'))
+    } catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    finally { setBusy(false) }
+  }
+
+  const sendInvite = async () => {
+    if (!inviteCrew) return
+    const personalized = invitee.trim()
+    const text = personalized ? t('crewFlow.inviteText', { name: personalized, crew: inviteCrew.name }) : t('crewFlow.inviteTextGeneric', { crew: inviteCrew.name })
+    setBusy(true); setError('')
+    let createdId = ''
+    try {
+      if (inviteCrew.remote) {
+        const invitation = await crewBackend.createInvitation(inviteCrew.id)
+        createdId = invitation.id
+        const url = `${location.origin}${location.pathname}?crewInvite=${encodeURIComponent(invitation.token)}`
+        const result = await platform.share.share({ title: t('crew.inviteTitle'), text, url })
+        if (result === 'cancelled') { await crewBackend.revokeInvitation(invitation.id); await refresh(); return }
+        await refresh(); notify(result === 'copied' ? t('crewFlow.inviteCopied') : t('crew.invitationShared'))
+      } else {
+        const result = await platform.share.share({ title: t('crew.inviteTitle'), text })
+        if (result === 'cancelled') return
+        update({ ...demo, crewInvitations: [...demo.crewInvitations, { id: uid(), crewId: inviteCrew.id, inviteeName: personalized || t('crew.friends'), channel: 'share', status: 'pending', createdAt: new Date().toISOString() }] })
+        notify(result === 'copied' ? t('crewFlow.inviteCopied') : t('crew.invitationShared'))
+      }
+      setInviteCrew(null); setInvitee('')
+    } catch (cause) {
+      if (createdId) await crewBackend.revokeInvitation(createdId).catch(() => undefined)
+      setError(cause instanceof Error ? cause.message : t('crewFlow.loadError'))
+    } finally { setBusy(false) }
+  }
+
+  const revoke = async (invitationId: string) => {
+    setBusy(true); setError('')
+    try { await crewBackend.revokeInvitation(invitationId); await refresh(); notify(t('crewFlow.inviteRevoked')) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    finally { setBusy(false) }
+  }
+  const removeMember = async (crew: CrewCardModel, memberId: string, displayName: string) => {
+    if (!window.confirm(t('crewFlow.removeMember', { name: displayName }))) return
+    setBusy(true); setError('')
+    try { await crewBackend.removeMember(crew.id, memberId); await refresh() }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    finally { setBusy(false) }
+  }
+  const leaveOrDelete = async (crew: CrewCardModel) => {
+    const label = crew.role === 'owner' ? t('crewFlow.deleteCrew') : t('crewFlow.leaveCrew')
+    if (!window.confirm(label)) return
+    setBusy(true); setError('')
+    try { if (crew.role === 'owner') await crewBackend.delete(crew.id); else await crewBackend.leave(crew.id); await refresh(); notify(t('crewFlow.crewRemoved')) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : t('crewFlow.loadError')) }
+    finally { setBusy(false) }
+  }
+  const kindLabel = (crew: CrewCardModel) => t(`crew.${crew.kind === 'Gym group' ? 'gymGroup' : crew.kind.toLowerCase()}`)
+
+  return <main className="page social-page">
+    <PageTitle kicker={t('crew.kicker')} title={t('crew.title')} text={t('crew.subtitle')} action={<button className="primary-button" disabled={auth.loading || busy} onClick={() => backendConfigured && !realMode ? onAccount() : setBuilder(true)}>＋ {t('crew.new')}</button>}/>
+    {backendConfigured && !realMode && <section className="connection-callout"><div><span className="kicker">{t('common.live')}</span><h2>{t('crewFlow.connectedTitle')}</h2><p>{t('crewFlow.connectedHelp')}</p></div><button className="primary-button coral" onClick={onAccount}>{t('crewFlow.openAccount')}</button></section>}
+    {builder && <AccessibleModal title={t('crew.new')} onClose={() => setBuilder(false)}><label>{t('crew.crewName')}<input value={crewName} onChange={event => setCrewName(event.target.value)} maxLength={60} placeholder="Friday Senders"/></label><label>{t('crew.groupType')}<select value={kind} onChange={event => setKind(event.target.value as Crew['kind'])}><option value="Friends">{t('crew.friends')}</option><option value="Couple">{t('crew.couple')}</option><option value="Family">{t('crew.family')}</option><option value="Gym group">{t('crew.gymGroup')}</option></select></label><div className="confirm-actions"><button className="secondary-button" onClick={() => setBuilder(false)}>{t('common.discard')}</button><button className="primary-button" disabled={busy || !crewName.trim()} onClick={() => void createCrew()}>{t('common.confirm')}</button></div></AccessibleModal>}
+    {inviteCrew && <AccessibleModal title={t('crew.inviteTitle')} onClose={() => setInviteCrew(null)}><p>{t('crewFlow.inviteHelp')}</p><label>{t('crewFlow.invitee')}<input value={invitee} onChange={event => setInvitee(event.target.value)} placeholder={t('crewFlow.invitePlaceholder')}/></label>{inviteCrew.remote && <p className="local-draft-note">{t('crewFlow.inviteExpires')}</p>}<div className="confirm-actions"><button className="secondary-button" onClick={() => setInviteCrew(null)}>{t('common.cancel')}</button><button className="primary-button coral" disabled={busy} onClick={() => void sendInvite()}>{t('crewFlow.shareInvite')}</button></div></AccessibleModal>}
+    {error && <p className="form-error board-error" role="alert">{error}</p>}
+    {loading && <p className="loading-state" role="status">{t('crewFlow.loading')}</p>}
+    {realMode && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crewFlow.connectedTitle')}</h2><p>{t('crewFlow.sessionNext')}</p></div></section>}
+    {!backendConfigured && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crew.ready')}</h2><p>{t('crew.subtitle')}</p></div><button className="primary-button pale" onClick={onFind}>{t('home.find')} <Icon name="arrow"/></button></section>}
+    <section className="section-block"><div className="section-heading"><div><span className="kicker">{t('crew.groupsLabel')}</span><h2>{t('crew.groups')}</h2></div></div>
+      {!loading && realMode && crews.length === 0 && <p className="section-empty-copy">{t('crewFlow.noCrews')}</p>}
+      <div className="crew-grid">{crews.map(crew => { const invitations = remoteInvites.filter(item => item.crewId === crew.id); return <article key={crew.id}><div className="crew-icon">{crew.kind === 'Family' ? '⌂' : '◎'}</div><span className="privacy-pill">{t('crew.membersOnly')}</span><h3>{crew.name}</h3><p>{kindLabel(crew)} · {t('crew.members', { count: crew.members.length })}</p><div className="member-row">{crew.members.map(member => <span key={member.id} title={member.displayName}>{member.displayName[0]}</span>)}<button onClick={() => setInviteCrew(crew)} aria-label={`${t('crew.invite')} ${crew.name}`}>＋</button></div>
+        {crew.guardianManaged && <small>{t('crew.guardian')}</small>}
+        {invitations.map(invitation => <div className="crew-active-invite" key={invitation.id}><span>{t('crewFlow.activeInvite', { date: formatTime(invitation.expiresAt) })}</span><button className="text-button" disabled={busy} onClick={() => void revoke(invitation.id)}>{t('crewFlow.revokeInvite')}</button></div>)}
+        {crew.remote ? <details className="crew-member-manager"><summary>{t('crewFlow.manageMembers')}</summary>{crew.members.map(member => <div key={member.id}><span>{member.displayName} · {member.role}</span>{crew.role === 'owner' && member.role !== 'owner' && <button className="text-button danger-text" disabled={busy} onClick={() => void removeMember(crew, member.id, member.displayName)}>{t('crewFlow.removeMember', { name: member.displayName })}</button>}</div>)}<button className="text-button danger-text" disabled={busy} onClick={() => void leaveOrDelete(crew)}>{crew.role === 'owner' ? t('crewFlow.deleteCrew') : t('crewFlow.leaveCrew')}</button></details> : <p className="local-draft-note">{t('crewFlow.recapPrivacy')}</p>}
+        <div className="crew-actions"><button className="secondary-button" disabled={crew.remote} title={crew.remote ? t('crewFlow.sessionNext') : undefined}>{t('crew.plan')}</button><button className="text-button" disabled={crew.remote} title={crew.remote ? t('crewFlow.sessionNext') : undefined}>{t('crew.recap')}</button></div>
+      </article> })}</div>
+    </section>
+    <section className="privacy-panel"><div><span className="kicker">{t('crew.privacyKicker')}</span><h2>{t('crew.privacyTitle')}</h2></div><p>{realMode ? t('crewFlow.privacyStored') : t('crew.safetyStatus', { count: demo.safety.blockedIds.length })}</p></section>
+  </main>
 }
 
 function MyCrewV2({ demo, update, notify, onFind }: { demo: DemoState; update: (state: DemoState, event?: string) => void; notify: (value: string) => void; onFind: () => void }) {
