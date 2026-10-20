@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
 const migration = await readFile(new URL('../supabase/migrations/0005_persistent_crews.sql', import.meta.url), 'utf8')
+const invitationFix = await readFile(new URL('../supabase/migrations/0006_fix_crew_invitation_expiry.sql', import.meta.url), 'utf8')
 const backend = await readFile(new URL('../src/services/crewBackend.ts', import.meta.url), 'utf8')
 const app = await readFile(new URL('../src/SocialApp.tsx', import.meta.url), 'utf8')
 const auth = await readFile(new URL('../src/services/researchBackend.ts', import.meta.url), 'utf8')
@@ -58,4 +59,16 @@ test('connected crew share preserves the browser user gesture', () => {
   assert.match(prepare, /crewBackend\.createInvitation/)
   assert.doesNotMatch(send, /crewBackend\.createInvitation/)
   assert.match(send, /platform\.share\.share\([\s\S]*preparedInvite\.url/)
+})
+
+test('crew invitation expiry query qualifies output-column names', () => {
+  assert.match(invitationFix, /update public\.crew_invitations as ci/)
+  assert.match(invitationFix, /ci\.status = 'pending' and ci\.expires_at <= now\(\)/)
+  assert.doesNotMatch(invitationFix, /where status = 'pending' and expires_at <= now\(\)/)
+})
+
+test('crew failures expose Supabase messages inside the invitation modal', () => {
+  assert.match(app, /const errorMessage =/)
+  assert.match(app, /inviteExpires[\s\S]*role="alert">\{error\}/)
+  assert.match(app, /realMode && !error/)
 })
