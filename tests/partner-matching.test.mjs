@@ -68,9 +68,29 @@ test('Route Lab retains product navigation and a visible return action', () => {
 
 test('pilot navigation and product tour expose the complete BETA loop', () => {
   assert.match(app, /\['home', t\('nav\.home'\)\]/)
+  assert.match(app, /\['learn', t\('nav\.routeLab'\)\]/)
+  assert.match(app, /\['climbs', t\('nav\.climbs'\)\]/)
+  assert.match(app, /\['share', t\('nav\.challenges'\)\]/)
+  assert.match(app, /\['find', t\('nav\.connect'\)\]/)
   for (const key of ['read', 'capture', 'challenge', 'compare', 'crew']) assert.match(app, new RegExp(`key: '${key}'`))
   assert.match(app, /nextConfirmedSession/)
   assert.match(app, /calendarHref\(nextSession\)/)
+})
+
+test('Connect separates partner discovery from existing crews', async () => {
+  const styles = await readFile(new URL('../src/social-fixes.css', import.meta.url), 'utf8')
+  assert.match(app, /function ConnectTabs/)
+  assert.match(app, /<ConnectTabs active="find"/)
+  assert.match(app, /<ConnectTabs active="crew"/)
+  assert.match(copy, /connect: \{ label: 'Connect', find: 'Find a Partner', crew: 'My Crew' \}/)
+  assert.match(styles, /\.connect-tabs/)
+})
+
+test('Challenges opens on Beta Challenge and hides the duplicate My Climb tab', async () => {
+  const styles = await readFile(new URL('../src/social-fixes.css', import.meta.url), 'utf8')
+  assert.match(app, /useState<'climb'\|'compare'\|'challenge'\|'wall'>\(initialSelected \? 'climb' : 'challenge'\)/)
+  assert.match(styles, /\.segmented > button:first-child \{ display: none; \}/)
+  assert.match(styles, /button:nth-child\(3\) \{ order: 1; \}/)
 })
 
 test('link previews describe the connected climbing product', () => {

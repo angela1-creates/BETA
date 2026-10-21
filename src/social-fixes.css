@@ -227,6 +227,14 @@
 .confirmed-strip .secondary-button { flex: 0 0 auto; text-decoration: none; }
 .story-strip ol { flex-wrap: wrap; justify-content: flex-end; }
 .story-strip li { min-width: 96px; flex: 1 1 96px; }
+.connect-tabs { display: inline-flex; gap: 5px; padding: 4px; margin-bottom: 32px; border-radius: 99px; background: #e8e5de; }
+.connect-tabs button { min-height: 42px; padding: 9px 18px; border: 0; border-radius: 99px; background: transparent; color: #64716b; cursor: pointer; }
+.connect-tabs button.active { background: #20332c; color: #fff; box-shadow: 0 3px 12px #20332c20; }
+.segmented > button:first-child { display: none; }
+.segmented:has(> button:first-child.active) { display: none; }
+.segmented > button:nth-child(3) { order: 1; }
+.segmented > button:nth-child(2) { order: 2; }
+.segmented > button:nth-child(4) { order: 3; }
 
 @media (max-width: 760px) {
   .mobile-nav { grid-template-columns: repeat(5, 1fr); }
@@ -234,4 +242,6 @@
   .confirmed-strip .secondary-button { width: 100%; text-align: center; }
   .story-strip ol { grid-template-columns: repeat(4, minmax(72px, 1fr)); overflow: visible; }
   .story-strip li { min-width: 0; }
+  .connect-tabs { display: flex; margin-bottom: 24px; }
+  .connect-tabs button { flex: 1; }
 }

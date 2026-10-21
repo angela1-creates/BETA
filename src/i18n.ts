@@ -6,7 +6,8 @@ export type AppLanguage = typeof supportedLanguages[number]
 
 const resources = {
   en: { translation: {
-    nav: { find: 'Find Crew', climbs: 'My Climbs', share: 'Share', crew: 'My Crew', home: 'Home', profile: 'Open profile' },
+    nav: { find: 'Find a Partner', climbs: 'My Climbs', share: 'Challenges', crew: 'My Crew', home: 'Home', routeLab: 'Route Lab', challenges: 'Challenges', connect: 'Connect', profile: 'Open profile' },
+    connect: { label: 'Connect', find: 'Find a Partner', crew: 'My Crew' },
     common: { cancel: 'Cancel', discard: 'Discard', preview: 'Preview', confirm: 'Confirm', close: 'Close', private: 'Private', optional: 'optional', back: 'Back', demo: 'Demo mode', live: 'Connected' },
     demo: { title: 'Interactive demo', detail: 'People and matching requests are fictional. Nothing is sent to a real gym or climber.' },
     session: { confirmed: 'Confirmed climbing session', next: 'Your next climbing session', calendar: 'Add to calendar' },
@@ -38,7 +39,8 @@ const resources = {
     language: { label: 'Language', english: 'English', chinese: '中文' }
   } },
   'zh-CN': { translation: {
-    nav: { find: '找搭档', climbs: '我的攀爬', share: '分享', crew: '我的伙伴', home: '首页', profile: '打开个人资料' },
+    nav: { find: '找搭档', climbs: '我的攀爬', share: '攀法挑战', crew: '我的伙伴', home: '首页', routeLab: '线路实验室', challenges: '攀法挑战', connect: '伙伴', profile: '打开个人资料' },
+    connect: { label: '伙伴', find: '寻找搭档', crew: '我的伙伴' },
     common: { cancel: '取消', discard: '舍弃', preview: '预览', confirm: '确认', close: '关闭', private: '私密', optional: '可选', back: '返回', demo: '演示模式', live: '已连接' },
     demo: { title: '互动演示', detail: '人物和匹配请求均为虚构，不会发送给真实岩馆或攀岩者。' },
     session: { confirmed: '已确认的攀岩安排', next: '你的下一次攀岩', calendar: '添加到日历' },
