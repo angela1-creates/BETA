@@ -72,9 +72,19 @@ test('pilot navigation and product tour expose the complete BETA loop', () => {
   assert.match(app, /\['climbs', t\('nav\.climbs'\)\]/)
   assert.match(app, /\['share', t\('nav\.challenges'\)\]/)
   assert.match(app, /\['find', t\('nav\.connect'\)\]/)
-  for (const key of ['read', 'capture', 'challenge', 'compare', 'crew']) assert.match(app, new RegExp(`key: '${key}'`))
+  for (const key of ['read', 'climbs', 'challenge', 'connect']) assert.match(app, new RegExp(`key: '${key}'`))
   assert.match(app, /nextConfirmedSession/)
   assert.match(app, /calendarHref\(nextSession\)/)
+})
+
+test('Route Lab reduces annotation friction and identifies the target route', async () => {
+  const routeLab = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  const canvas = await readFile(new URL('../src/components/RouteCanvas.tsx', import.meta.url), 'utf8')
+  assert.match(routeLab, /LH: 'RH', RH: 'LF', LF: 'RF', RF: 'LH'/)
+  assert.match(routeLab, /if \(step\.type !== 'MOVE'\) setTool\(nextPlacementTool\[step\.type\]\)/)
+  assert.match(routeLab, /routeLab\.workspace\.quickRead/)
+  assert.match(canvas, /className="route-target"/)
+  assert.match(canvas, /routeLab\.canvas\.solve/)
 })
 
 test('Connect separates partner discovery from existing crews', async () => {

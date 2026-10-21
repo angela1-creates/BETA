@@ -74,10 +74,9 @@ function ProductTour({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const { t } = useTranslation()
   const steps = [
     { key: 'read', screen: 'learn' as Screen, image: 'feet-first-v1-blue.webp' },
-    { key: 'capture', screen: 'climbs' as Screen, image: 'real-study-v2.jpg' },
+    { key: 'climbs', screen: 'climbs' as Screen, image: 'real-study-v2.jpg' },
     { key: 'challenge', screen: 'share' as Screen, image: 'weight-shift-v3-coral.webp' },
-    { key: 'compare', screen: 'share' as Screen, image: 'multiple-betas-v4-sage.webp' },
-    { key: 'crew', screen: 'crew' as Screen, image: 'library-v4-sage.webp' },
+    { key: 'connect', screen: 'find' as Screen, image: 'library-v4-sage.webp' },
   ]
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(true)

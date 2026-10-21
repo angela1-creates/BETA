@@ -217,6 +217,12 @@
 
 /* Stable viewport units stop the Route Lab image resizing when mobile browser chrome moves. */
 .route-canvas { height: min(70svh, 780px); contain: layout paint; }
+.route-lab-guide { display: flex; justify-content: space-between; gap: 16px; margin: 0 0 10px; color: #52615a; font-size: 12px; }
+.route-lab-guide strong { color: #20332c; }
+.route-target { position: absolute; z-index: 2; top: 14px; left: 14px; display: grid; grid-template-columns: 10px auto; align-items: center; gap: 2px 8px; max-width: calc(100% - 28px); padding: 10px 13px; border-radius: 10px; background: #fffef5e8; color: #20332c; box-shadow: 0 4px 18px #17211d26; pointer-events: none; backdrop-filter: blur(7px); }
+.route-target i { grid-row: 1 / 3; width: 10px; height: 10px; border-radius: 50%; }
+.route-target span { color: #68716c; font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.route-target strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 1050px) { .route-canvas { height: 72svh; } }
 @media (max-width: 760px) { .route-canvas { height: 68svh; } }
 @media (max-width: 480px) { .route-canvas { height: 64svh; } }
@@ -244,4 +250,5 @@
   .story-strip li { min-width: 0; }
   .connect-tabs { display: flex; margin-bottom: 24px; }
   .connect-tabs button { flex: 1; }
+  .route-lab-guide { display: grid; gap: 3px; }
 }
