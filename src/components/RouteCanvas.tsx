@@ -22,6 +22,7 @@ export function RouteCanvas({ route, steps, tool, mode, selectedId, onSelect, on
 
   return <div className={`route-canvas ${mode}`} ref={ref} onPointerDown={click} role="application" aria-label={t('routeLab.canvas.annotate', { route: route.title })}>
     <img src={route.image} alt={t('routeLab.canvas.wallAlt', { route: route.title })} draggable="false" />
+    <div className="route-target"><i style={{ background: route.accent }} /><span>{t('routeLab.canvas.solve')}</span><strong>{t('routeLab.workspace.holds', { color: route.colorName })} · {route.grade}</strong></div>
     <svg className="arrows" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <defs><marker id={`head-${mode}`} markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill={mode === 'predicted' ? '#315c4d' : '#e76f51'} /></marker></defs>
       {steps.filter(s => s.type === 'MOVE').map(s => <line key={s.id} x1={s.x} y1={s.y} x2={s.endX} y2={s.endY} markerEnd={`url(#head-${mode})`} />)}

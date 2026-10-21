@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { routeLabCopy } from './routeLabCopy'
 
 const uid = () => Math.random().toString(36).slice(2, 10)
+const nextPlacementTool: Record<Exclude<Tool, 'MOVE'>, Tool> = { LH: 'RH', RH: 'LF', LF: 'RF', RF: 'LH' }
 
 function App() {
   const auth = useResearchAuth()
@@ -70,7 +71,10 @@ function App() {
     setHistory(h => [...h.slice(-29), steps]); setFuture([])
     updateAttempt({ [key]: next.map((s, i) => ({ ...s, order: i + 1 })) })
   }
-  const addStep = (step: Omit<MoveStep, 'id' | 'order' | 'note'>) => commitSteps([...steps, { ...step, id: uid(), order: steps.length + 1, note: '' }])
+  const addStep = (step: Omit<MoveStep, 'id' | 'order' | 'note'>) => {
+    commitSteps([...steps, { ...step, id: uid(), order: steps.length + 1, note: '' }])
+    if (step.type !== 'MOVE') setTool(nextPlacementTool[step.type])
+  }
   const editStep = (id: string, note: string) => updateAttempt({ [key]: steps.map(s => s.id === id ? { ...s, note } : s) })
   const deleteStep = (id: string) => { commitSteps(steps.filter(s => s.id !== id)); setSelectedId(undefined) }
   const reorder = (id: string, delta: number) => {
@@ -111,6 +115,7 @@ function App() {
       </div>
       <div className="workspace-grid">
         <div className="canvas-column">
+          <div className="route-lab-guide"><strong>{t('routeLab.workspace.quickRead')}</strong><span>{t('routeLab.workspace.autoAdvance')}</span></div>
           <div className="canvas-bar"><MarkerToolbar selected={tool} onSelect={setTool} /><div className="history-actions"><button onClick={undo} disabled={!history.length} aria-label={t('routeLab.workspace.undo')}><Icon name="undo" /></button><button onClick={redo} disabled={!future.length} aria-label={t('routeLab.workspace.redo')}><Icon name="redo" /></button><button onClick={() => steps.length && commitSteps([])} disabled={!steps.length} aria-label={t('routeLab.workspace.clear')}><Icon name="trash" /></button></div></div>
           <RouteCanvas route={localizedRoute} steps={steps} tool={tool} mode={mode} selectedId={selectedId} onSelect={setSelectedId} onAdd={addStep} />
           <div className="canvas-caption"><span><i className="hand-key" />{t('routeLab.workspace.hands')}</span><span><i className="foot-key" />{t('routeLab.workspace.feet')}</span><span><i className="path-key" />{t('routeLab.workspace.movement')}</span></div>
