@@ -214,3 +214,24 @@
   .confirm-actions { flex-direction: column-reverse; }
   .confirm-actions > button { width: 100%; }
 }
+
+/* Stable viewport units stop the Route Lab image resizing when mobile browser chrome moves. */
+.route-canvas { height: min(70svh, 780px); contain: layout paint; }
+@media (max-width: 1050px) { .route-canvas { height: 72svh; } }
+@media (max-width: 760px) { .route-canvas { height: 68svh; } }
+@media (max-width: 480px) { .route-canvas { height: 64svh; } }
+
+.tour-tabs { flex-wrap: wrap; }
+.confirmed-strip { justify-content: flex-start; }
+.confirmed-strip > div { flex: 1; }
+.confirmed-strip .secondary-button { flex: 0 0 auto; text-decoration: none; }
+.story-strip ol { flex-wrap: wrap; justify-content: flex-end; }
+.story-strip li { min-width: 96px; flex: 1 1 96px; }
+
+@media (max-width: 760px) {
+  .mobile-nav { grid-template-columns: repeat(5, 1fr); }
+  .confirmed-strip { align-items: flex-start; flex-wrap: wrap; }
+  .confirmed-strip .secondary-button { width: 100%; text-align: center; }
+  .story-strip ol { grid-template-columns: repeat(4, minmax(72px, 1fr)); overflow: visible; }
+  .story-strip li { min-width: 0; }
+}

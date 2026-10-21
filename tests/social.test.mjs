@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createToken, hasPendingInvitation, isRequestActive, requestDisplayStatus, screenHref, transitionInvitation, transitionRequest } from '../src/social.ts'
+import { calendarHref, createToken, hasPendingInvitation, isRequestActive, nextConfirmedSession, requestDisplayStatus, screenHref, transitionInvitation, transitionRequest } from '../src/social.ts'
 
 const request = (endsAt, status = 'active') => ({
   id: 'request-1', personId: 'maya', personName: 'Maya', avatar: 'M', gym: 'Movement Santa Clara',
@@ -56,4 +56,21 @@ test('screen navigation removes stale Route Lab query on home and updates other 
   assert.equal(screenHref('/BETA/', '?screen=learn', 'home'), '/BETA/')
   assert.equal(screenHref('/BETA/', '?screen=learn', 'climbs'), '/BETA/?screen=climbs')
   assert.equal(screenHref('/BETA/', '?shared=secret&screen=learn', 'share'), '/BETA/?screen=share')
+})
+
+test('the next confirmed climbing session is selected chronologically', () => {
+  const sessions = [
+    { id: 'later', gymName: 'Movement Sunnyvale', startsAt: '2030-01-03T18:00:00.000Z', status: 'confirmed' },
+    { id: 'cancelled', gymName: 'Movement Belmont', startsAt: '2030-01-01T18:00:00.000Z', status: 'cancelled' },
+    { id: 'next', gymName: 'Movement Santa Clara', startsAt: '2030-01-02T18:00:00.000Z', status: 'confirmed' },
+  ]
+  assert.equal(nextConfirmedSession(sessions, new Date('2030-01-01T00:00:00.000Z'))?.id, 'next')
+})
+
+test('confirmed sessions can be downloaded as calendar events', () => {
+  const href = calendarHref({ id: 'session-1', gymName: 'Movement Sunnyvale', startsAt: '2030-01-02T18:00:00.000Z', status: 'confirmed' })
+  const calendar = decodeURIComponent(href.split(',')[1])
+  assert.match(calendar, /BEGIN:VCALENDAR/)
+  assert.match(calendar, /DTSTART:20300102T180000Z/)
+  assert.match(calendar, /LOCATION:Movement Sunnyvale/)
 })

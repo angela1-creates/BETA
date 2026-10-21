@@ -9,6 +9,7 @@ const app = await readFile(new URL('../src/SocialApp.tsx', import.meta.url), 'ut
 const copy = await readFile(new URL('../src/i18n.ts', import.meta.url), 'utf8')
 const platform = await readFile(new URL('../src/platform.ts', import.meta.url), 'utf8')
 const accountModal = await readFile(new URL('../src/components/ResearchAccountModal.tsx', import.meta.url), 'utf8')
+const index = await readFile(new URL('../index.html', import.meta.url), 'utf8')
 
 test('Bay Area Movement pilot includes all five official locations', () => {
   for (const location of ['Belmont', 'Mountain View', 'San Francisco', 'Santa Clara', 'Sunnyvale']) {
@@ -63,6 +64,26 @@ test('share card handoff and media-backed download are explicit', () => {
 test('Route Lab retains product navigation and a visible return action', () => {
   assert.match(app, /route-lab-shell[\s\S]*<Header screen=\{screen\}/)
   assert.match(app, /routeLab\.context\.back/)
+})
+
+test('pilot navigation and product tour expose the complete BETA loop', () => {
+  assert.match(app, /\['home', t\('nav\.home'\)\]/)
+  for (const key of ['read', 'capture', 'challenge', 'compare', 'crew']) assert.match(app, new RegExp(`key: '${key}'`))
+  assert.match(app, /nextConfirmedSession/)
+  assert.match(app, /calendarHref\(nextSession\)/)
+})
+
+test('link previews describe the connected climbing product', () => {
+  assert.match(index, /<title>BETA — Climb better, together<\/title>/)
+  assert.match(index, /property="og:title"/)
+  assert.match(index, /property="og:image"/)
+  assert.match(index, /name="twitter:card" content="summary_large_image"/)
+})
+
+test('Route Lab canvas uses a stable viewport height on mobile', async () => {
+  const styles = await readFile(new URL('../src/social-fixes.css', import.meta.url), 'utf8')
+  assert.match(styles, /\.route-canvas \{[^}]*height: min\(70svh, 780px\)/)
+  assert.match(styles, /@media \(max-width: 480px\) \{ \.route-canvas \{ height: 64svh/)
 })
 
 test('crew invitations use real join links only when the backend is connected', () => {
