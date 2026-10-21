@@ -75,6 +75,7 @@ test('pilot navigation and product tour expose the complete BETA loop', () => {
   for (const key of ['read', 'climbs', 'challenge', 'connect']) assert.match(app, new RegExp(`key: '${key}'`))
   assert.match(app, /nextConfirmedSession/)
   assert.match(app, /calendarHref\(nextSession\)/)
+  assert.doesNotMatch(app, /quick-grid|Share a Climb|Climb With My Crew/)
 })
 
 test('Route Lab reduces annotation friction and identifies the target route', async () => {
