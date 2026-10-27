@@ -44,7 +44,13 @@ export const initialDemoState = (): DemoState => ({
       { id: 'r2', personName: 'Jordan', caption: 'Different body, different idea.', move: 'Foot swap first, turn in, then go left hand.', revealed: false }
     ], createdAt: new Date().toISOString()
   }],
-  crews: [{ id: 'family-crew', name: 'Sunday Senders', kind: 'Family', members: ['You', 'Alex', 'Nana Jo'], private: true, guardianManaged: true }],
+  crews: [{ id: 'pilot-crew', name: 'Sunday Senders', kind: 'Gym group', members: ['You', 'Alex', 'Maya', 'Jordan', 'Sam', 'Nana Jo'], private: true }],
+  crewPilots: [{
+    id: 'sunday-senders-pilot', crewId: 'pilot-crew', gym: 'Movement Sunnyvale',
+    sessionDates: [nextDate(2, 18)],
+    challenge: 'Pick one problem together. Explore different approaches. Capture one breakthrough or memorable moment.',
+    contributions: [], nextInviteSent: false
+  }],
   crewInvitations: [], sessionProposals: [],
   safety: { profileVisibility: 'Gym only', blockedIds: [], adultConfirmed: true, shareConsent: false }, events: []
 })
@@ -63,7 +69,8 @@ function withoutSeededPeople(state: DemoState): DemoState {
     favoriteRequests: state.favoriteRequests.filter(id => !seededPeople.has(id)),
     climbs: state.climbs.filter(climb => climb.id !== 'climb-first-lead'),
     challenges: state.challenges.filter(challenge => challenge.id !== 'challenge-corner'),
-    crews: state.crews.filter(crew => crew.id !== 'family-crew')
+    crews: state.crews.filter(crew => crew.id !== 'pilot-crew'),
+    crewPilots: state.crewPilots.filter(pilot => pilot.id !== 'sunday-senders-pilot')
   }
 }
 
@@ -74,7 +81,11 @@ export function loadDemoState(): DemoState {
     const initial = initialDemoState()
     const parsed = JSON.parse(saved)
     const climbs = (parsed.climbs || initial.climbs).map((climb: DemoState['climbs'][number]) => climb.title === 'A good day on the wall' ? { ...climb, title: `Climb · ${new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(climb.createdAt))}` } : climb)
-    return withoutSeededPeople({ ...initial, ...parsed, climbs, crewInvitations: parsed.crewInvitations || [], sessionProposals: parsed.sessionProposals || [] })
+    const storedCrews = parsed.crews || initial.crews
+    const crews = !backendConfigured && !storedCrews.some((crew: DemoState['crews'][number]) => crew.id === 'pilot-crew')
+      ? [...initial.crews, ...storedCrews.filter((crew: DemoState['crews'][number]) => crew.id !== 'family-crew')]
+      : storedCrews
+    return withoutSeededPeople({ ...initial, ...parsed, climbs, crews, crewPilots: parsed.crewPilots || initial.crewPilots, crewInvitations: parsed.crewInvitations || [], sessionProposals: parsed.sessionProposals || [] })
   } catch { return withoutSeededPeople(initialDemoState()) }
 }
 

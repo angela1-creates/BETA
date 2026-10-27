@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import LegacyRouteLab from './App'
 import { loadDemoState, saveDemoState } from './demo'
 import { calendarHref, createToken, hasPendingInvitation, isRequestActive, nextConfirmedSession, requestDisplayStatus, screenHref, trackEvent, transitionInvitation, transitionRequest } from './social'
-import type { AvailabilityRequest, BetaChallenge, CalendarSession, ClimbMoment, Crew, DemoState, Invitation, SessionProposal } from './social'
+import type { AvailabilityRequest, BetaChallenge, CalendarSession, ClimbMoment, Crew, CrewPilotContributionKind, DemoState, Invitation, SessionProposal } from './social'
 import { Icon } from './components/Icon'
 import { AccessibleModal } from './components/AccessibleModal'
 import { ResearchAccountModal } from './components/ResearchAccountModal'
@@ -43,7 +43,7 @@ export default function SocialApp() {
   if (sharedToken) return <SharedView demo={demo} token={sharedToken}/>
   if (screen === 'learn') return <div className="app-shell social-shell route-lab-shell"><Header screen={screen} onNavigate={navigate} language={i18n.language} onLanguage={language => void i18n.changeLanguage(language)} accountLabel={auth.session?.user.email?.[0]?.toUpperCase() || 'A'} onAccount={() => setAccountOpen(true)}/><div className="route-lab-return"><button className="text-button" onClick={() => navigate('climbs')}>{t('routeLab.context.back')}</button><span><strong>{t('routeLab.context.title')}</strong><small>{t('routeLab.context.subtitle')}</small></span></div><div className="nested-lab"><LegacyRouteLab /></div>{accountOpen && <ResearchAccountModal onClose={() => setAccountOpen(false)}/>}</div>
   return <div className="app-shell social-shell"><Header screen={screen} onNavigate={navigate} language={i18n.language} onLanguage={language => void i18n.changeLanguage(language)} accountLabel={auth.session?.user.email?.[0]?.toUpperCase() || 'A'} onAccount={() => setAccountOpen(true)}/><DemoBanner/>
-    {screen === 'home' && <Home onNavigate={navigate} demo={demo}/>} {screen === 'find' && <FindCrew demo={demo} update={update} notify={setToast} onAccount={() => setAccountOpen(true)} onCrew={() => navigate('crew')}/>} {screen === 'climbs' && <MyClimbs demo={demo} update={update} notify={setToast} onLearn={() => navigate('learn')} onShare={id => { setShareClimbId(id); navigate('share') }}/>} {screen === 'share' && <ShareHub demo={demo} update={update} notify={setToast} initialSelected={shareClimbId}/>} {screen === 'crew' && (backendConfigured ? <MyCrewPersistent demo={demo} update={update} notify={setToast} onFind={() => navigate('find')} onAccount={() => setAccountOpen(true)}/> : <MyCrewV2 demo={demo} update={update} notify={setToast} onFind={() => navigate('find')}/>)} {toast && <div className="toast" role="status" aria-live="polite">✓ {toast}</div>}
+    {screen === 'home' && <Home onNavigate={navigate} demo={demo}/>} {screen === 'find' && <FindCrew demo={demo} update={update} notify={setToast} onAccount={() => setAccountOpen(true)} onCrew={() => navigate('crew')}/>} {screen === 'climbs' && <MyClimbs demo={demo} update={update} notify={setToast} onLearn={() => navigate('learn')} onShare={id => { setShareClimbId(id); navigate('share') }}/>} {screen === 'share' && <ShareHub demo={demo} update={update} notify={setToast} initialSelected={shareClimbId}/>} {screen === 'crew' && (backendConfigured ? <MyCrewPersistent demo={demo} update={update} notify={setToast} onFind={() => navigate('find')} onAccount={() => setAccountOpen(true)} onCapture={() => navigate('climbs')}/> : <MyCrewV2 demo={demo} update={update} notify={setToast} onFind={() => navigate('find')} onCapture={() => navigate('climbs')}/>)} {toast && <div className="toast" role="status" aria-live="polite">✓ {toast}</div>}
     {accountOpen && <ResearchAccountModal onClose={() => setAccountOpen(false)}/>}
   </div>
 }
@@ -51,20 +51,20 @@ export default function SocialApp() {
 function DemoBanner() { const { t } = useTranslation(); if (backendConfigured) return null; return <div className="demo-banner"><strong>{t('demo.title')}</strong><span>{t('demo.detail')}</span></div> }
 
 function Header({ screen, onNavigate, language, onLanguage, accountLabel, onAccount }: { screen: Screen; onNavigate: (screen: Screen) => void; language: string; onLanguage: (language: string) => void; accountLabel: string; onAccount: () => void }) {
-  const { t } = useTranslation(); const items: [Screen, string][] = [['home', t('nav.home')], ['learn', t('nav.routeLab')], ['climbs', t('nav.climbs')], ['share', t('nav.challenges')], ['find', t('nav.connect')]]
-  const active = (id: Screen) => id === 'find' ? screen === 'find' || screen === 'crew' : screen === id
+  const { t } = useTranslation(); const items: [Screen, string][] = [['home', t('nav.home')], ['learn', t('nav.routeLab')], ['climbs', t('nav.climbs')], ['share', t('nav.challenges')], ['crew', t('nav.connect')]]
+  const active = (id: Screen) => id === 'crew' ? screen === 'find' || screen === 'crew' : screen === id
   return <><header className="site-header social-header"><button className="logo" onClick={() => onNavigate('home')} aria-label={t('nav.home')}><span>β</span>BETA</button><nav aria-label="Primary navigation">{items.map(([id, label]) => <button key={id} className={active(id) ? 'active' : ''} onClick={() => onNavigate(id)}>{label}</button>)}</nav><div className="header-actions"><button className="language-button" onClick={() => onLanguage(language.startsWith('zh') ? 'en' : 'zh-CN')} aria-label={t('language.label')}>{language.startsWith('zh') ? 'EN' : '中文'}</button><button className="avatar-button" onClick={onAccount} aria-label="Research account">{accountLabel}</button></div></header><nav className="mobile-nav" aria-label="Mobile navigation">{items.map(([id, label]) => <button key={id} className={active(id) ? 'active' : ''} onClick={() => onNavigate(id)}><span aria-hidden="true">{id === 'home' ? '⌂' : id === 'learn' ? '◇' : id === 'climbs' ? '△' : id === 'share' ? '↗' : '◎'}</span>{label}</button>)}</nav></>
 }
 
 function ConnectTabs({ active, onFind, onCrew }: { active: 'find' | 'crew'; onFind: () => void; onCrew: () => void }) {
   const { t } = useTranslation()
-  return <nav className="connect-tabs" aria-label={t('connect.label')}><button className={active === 'find' ? 'active' : ''} onClick={onFind}>{t('connect.find')}</button><button className={active === 'crew' ? 'active' : ''} onClick={onCrew}>{t('connect.crew')}</button></nav>
+  return <nav className="connect-tabs" aria-label={t('connect.label')}><button className={active === 'crew' ? 'active' : ''} onClick={onCrew}>{t('connect.crew')}</button><button className={active === 'find' ? 'active' : ''} onClick={onFind}>{t('connect.find')}</button></nav>
 }
 
 function Home({ onNavigate, demo }: { onNavigate: (screen: Screen) => void; demo: DemoState }) {
   const { t } = useTranslation()
-  const activeCount = demo.requests.filter(request => isRequestActive(request)).length
-  return <main className="social-home"><section className="social-hero"><div className="hero-content"><span className="kicker">{t('home.kicker')}</span><h1>{t('home.titleStart')} <em>{t('home.titleEnd')}</em></h1><p className="hero-promise">{t('home.subtitle')}</p><div className="hero-actions"><button className="primary-button coral" onClick={() => onNavigate('climbs')}>{t('home.share')} <Icon name="arrow"/></button><button className="secondary-button" onClick={() => onNavigate('crew')}>{t('home.crew')}</button></div><button className="find-link" onClick={() => onNavigate('find')}>{t('home.need')} <strong>{t('home.find')}</strong></button><div className="trust-row"><span>{t('home.solo')}</span><span>{t('home.privacy')}</span><span>{t('home.adults')}</span></div></div><div className="hero-photo-card"><img src={`${import.meta.env.BASE_URL}routes/feet-first-v1-blue.webp`} alt="Climber exploring a blue indoor route"/><div className="floating-session"><span className="pulse"/><div><small>{backendConfigured ? 'Real pilot matching · sign-in required' : `${activeCount} fictional openings in local demo`}</small><strong>Climb your way this week.</strong></div></div></div></section>
+  const pilotCrew = demo.crews.find(crew => crew.id === demo.crewPilots[0]?.crewId)
+  return <main className="social-home"><section className="social-hero"><div className="hero-content"><span className="kicker">{t('home.kicker')}</span><h1>{t('home.titleStart')} <em>{t('home.titleEnd')}</em></h1><p className="hero-promise">{t('home.subtitle')}</p><div className="hero-actions"><button className="primary-button coral" onClick={() => onNavigate('crew')}>{t('home.crew')} <Icon name="arrow"/></button><button className="secondary-button" onClick={() => onNavigate('climbs')}>{t('home.share')}</button></div><button className="find-link" onClick={() => onNavigate('find')}>{t('home.need')} <strong>{t('home.find')}</strong></button><div className="trust-row"><span>{t('home.solo')}</span><span>{t('home.privacy')}</span><span>{t('home.adults')}</span></div></div><div className="hero-photo-card"><img src={`${import.meta.env.BASE_URL}routes/feet-first-v1-blue.webp`} alt="Climber exploring a blue indoor route"/><div className="floating-session"><span className="pulse"/><div><small>{backendConfigured ? 'Private crews · sign-in required' : `${pilotCrew?.members.length || 6} crew members · two sessions planned`}</small><strong>Help each other climb. Come back together.</strong></div></div></div></section>
     <ProductTour onNavigate={onNavigate}/>
     <section className="story-strip"><div><span className="kicker light">{t('home.loop.kicker')}</span><h2>{t('home.loop.titleA')}<br/>{t('home.loop.titleB')}</h2></div><ol>{(['read', 'climb', 'capture', 'challenge', 'compare', 'connect', 'again'] as const).map((key, index) => <li key={key}><span>{index + 1}</span>{t(`home.loop.${key}`)}</li>)}</ol></section></main>
 }
@@ -72,17 +72,19 @@ function Home({ onNavigate, demo }: { onNavigate: (screen: Screen) => void; demo
 function ProductTour({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const { t } = useTranslation()
   const steps = [
-    { key: 'read', screen: 'learn' as Screen, image: 'feet-first-v1-blue.webp' },
-    { key: 'climbs', screen: 'climbs' as Screen, image: 'real-study-v2.jpg' },
-    { key: 'challenge', screen: 'share' as Screen, image: 'weight-shift-v3-coral.webp' },
-    { key: 'connect', screen: 'find' as Screen, image: 'library-v4-sage.webp' },
+    { key: 'pick', image: 'feet-first-v1-blue.webp' },
+    { key: 'explore', image: 'multiple-betas-v4-sage.webp' },
+    { key: 'try', image: 'real-study-v2.jpg' },
+    { key: 'share', image: 'weight-shift-v3-coral.webp' },
+    { key: 'support', image: 'library-v4-sage.webp' },
+    { key: 'return', image: 'real-study-v6.jpg' },
   ]
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(true)
-  useEffect(() => { if (!playing) return; const timer = window.setInterval(() => setStep(value => (value + 1) % steps.length), 4500); return () => window.clearInterval(timer) }, [playing, steps.length])
+  useEffect(() => { if (!playing) return; const timer = window.setInterval(() => setStep(value => (value + 1) % steps.length), 6000); return () => window.clearInterval(timer) }, [playing, steps.length])
   const current = steps[step]
-  const copy = (field: 'label' | 'title' | 'text' | 'action') => t(`home.tour.steps.${current.key}.${field}`)
-  return <section className="product-tour" aria-label={t('home.tour.aria')}><div className="tour-copy"><span className="kicker">{t('home.tour.kicker', { current: step + 1, total: steps.length })}</span><h2>{t('home.tour.title')}</h2><div className="tour-tabs" role="tablist">{steps.map((item, index) => <button role="tab" aria-selected={step === index} className={step === index ? 'active' : ''} key={item.key} onClick={() => { setStep(index); setPlaying(false) }}>{t(`home.tour.steps.${item.key}.label`)}</button>)}</div><h3>{copy('title')}</h3><p>{copy('text')}</p><button className="primary-button coral" onClick={() => onNavigate(current.screen)}>{copy('action')} <Icon name="arrow"/></button></div><div className="tour-player"><div className="tour-screen" key={current.key}><img src={`${import.meta.env.BASE_URL}routes/${current.image}`} alt=""/><div><span>BETA · {copy('label').toUpperCase()}</span><strong>{copy('title')}</strong><small>{copy('text')}</small></div></div><button className="tour-play" onClick={() => setPlaying(value => !value)} aria-label={t(playing ? 'home.tour.pause' : 'home.tour.play')}>{playing ? 'Ⅱ' : '▶'}</button><div className="tour-progress" aria-hidden="true"><i className={playing ? 'playing' : ''} key={`${step}-${playing}`}/></div></div></section>
+  const copy = (field: 'label' | 'title' | 'text') => t(`home.tour.steps.${current.key}.${field}`)
+  return <section className="product-tour" aria-label={t('home.tour.aria')}><div className="tour-copy"><span className="kicker">{t('home.tour.kicker', { current: step + 1, total: steps.length })}</span><h2>{t('home.tour.title')}</h2><div className="tour-tabs" role="tablist">{steps.map((item, index) => <button role="tab" aria-selected={step === index} className={step === index ? 'active' : ''} key={item.key} onClick={() => { setStep(index); setPlaying(false) }}>{t(`home.tour.steps.${item.key}.label`)}</button>)}</div><h3>{copy('title')}</h3><p>{copy('text')}</p><button className="primary-button coral" onClick={() => onNavigate('crew')}>{t('home.tour.action')} <Icon name="arrow"/></button></div><div className="tour-player"><div className="tour-screen" key={current.key}><img src={`${import.meta.env.BASE_URL}routes/${current.image}`} alt=""/><div><span>{t('home.tour.example')} · {copy('label').toUpperCase()}</span><strong>{copy('title')}</strong><small>{copy('text')}</small></div></div><button className="tour-play" onClick={() => setPlaying(value => !value)} aria-label={t(playing ? 'home.tour.pause' : 'home.tour.play')}>{playing ? 'Ⅱ' : '▶'}</button><div className="tour-progress" aria-hidden="true"><i className={playing ? 'playing' : ''} key={`${step}-${playing}`}/></div></div></section>
 }
 
 function FindCrew({ demo, update, notify, onAccount, onCrew }: { demo: DemoState; update: (state: DemoState, event?: string) => void; notify: (value: string) => void; onAccount: () => void; onCrew: () => void }) {
@@ -238,7 +240,7 @@ function CrewInvitationView({ token, onAccount }: { token: string; onAccount: ()
   </section></main>
 }
 
-function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: DemoState; update: (state: DemoState, event?: string) => void; notify: (value: string) => void; onFind: () => void; onAccount: () => void }) {
+function MyCrewPersistent({ demo, update, notify, onFind, onAccount, onCapture }: { demo: DemoState; update: (state: DemoState, event?: string) => void; notify: (value: string) => void; onFind: () => void; onAccount: () => void; onCapture: () => void }) {
   const { t } = useTranslation()
   const auth = useResearchAuth()
   const realMode = Boolean(backendConfigured && auth.session && auth.profile?.consentedAt)
@@ -381,6 +383,13 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
     {inviteCrew && <AccessibleModal title={t('crew.inviteTitle')} onClose={() => void closeInvite()}><p>{t('crewFlow.inviteHelp')}</p><label>{t('crewFlow.invitee')}<input value={invitee} onChange={event => setInvitee(event.target.value)} placeholder={t('crewFlow.invitePlaceholder')}/></label>{inviteCrew.remote && <p className="local-draft-note">{t('crewFlow.inviteExpires')}</p>}{error && <p className="form-error" role="alert">{error}</p>}<div className="confirm-actions"><button className="secondary-button" disabled={busy} onClick={() => void closeInvite()}>{t('common.cancel')}</button><button className="primary-button coral" disabled={busy || (inviteCrew.remote && !preparedInvite)} onClick={() => void sendInvite()}>{t('crewFlow.shareInvite')}</button></div></AccessibleModal>}
     {error && <p className="form-error board-error" role="alert">{error}</p>}
     {loading && <p className="loading-state" role="status">{t('crewFlow.loading')}</p>}
+    {realMode && crews.length > 0 && <CrewPilotPanel
+      demo={demo}
+      update={update}
+      notify={notify}
+      onCapture={onCapture}
+      crewOverride={{ id: crews[0].id, name: crews[0].name, members: crews[0].members.map(member => member.displayName) }}
+    />}
     {realMode && !error && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crewFlow.connectedTitle')}</h2><p>{t('crewFlow.sessionNext')}</p></div></section>}
     {!backendConfigured && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crew.ready')}</h2><p>{t('crew.subtitle')}</p></div><button className="primary-button pale" onClick={onFind}>{t('home.find')} <Icon name="arrow"/></button></section>}
     <section className="section-block"><div className="section-heading"><div><span className="kicker">{t('crew.groupsLabel')}</span><h2>{t('crew.groups')}</h2></div></div>
@@ -396,7 +405,94 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount }: { demo: D
   </main>
 }
 
-function MyCrewV2({ demo, update, notify, onFind }: { demo: DemoState; update: (state: DemoState, event?: string) => void; notify: (value: string) => void; onFind: () => void }) {
+function CrewPilotPanel({ demo, update, notify, onCapture, crewOverride }: { demo: DemoState; update: (state: DemoState, event?: string) => void; notify: (value: string) => void; onCapture: () => void; crewOverride?: { id: string; name: string; members: string[] } }) {
+  const pilot = crewOverride ? demo.crewPilots.find(item => item.crewId === crewOverride.id) : demo.crewPilots[0]
+  const crew = crewOverride || (pilot ? demo.crews.find(item => item.id === pilot.crewId) : undefined)
+  const [setupOpen, setSetupOpen] = useState(false)
+  const [contributionOpen, setContributionOpen] = useState(false)
+  const [responseToId, setResponseToId] = useState('')
+  const [gym, setGym] = useState(pilot?.gym || 'Movement Sunnyvale')
+  const [firstDate, setFirstDate] = useState(pilot ? pilot.sessionDates[0].slice(0, 16) : '')
+  const [secondDate, setSecondDate] = useState(pilot?.sessionDates[1]?.slice(0, 16) || '')
+  const [challenge, setChallenge] = useState(pilot?.challenge || '')
+  const [memberName, setMemberName] = useState('You')
+  const [kind, setKind] = useState<CrewPilotContributionKind>('moment')
+  const [note, setNote] = useState('')
+  const [climbId, setClimbId] = useState('')
+  const [wantsHelp, setWantsHelp] = useState(false)
+  const [responseMember, setResponseMember] = useState('Alex')
+  const [responseKind, setResponseKind] = useState<'beta' | 'encouragement'>('beta')
+  const [responseNote, setResponseNote] = useState('')
+  useEffect(() => {
+    if (!pilot) return
+    setGym(pilot.gym); setFirstDate(pilot.sessionDates[0].slice(0, 16)); setSecondDate(pilot.sessionDates[1]?.slice(0, 16) || ''); setChallenge(pilot.challenge)
+  }, [pilot?.id])
+  if (!crew) return null
+  if (!pilot) return <section className="crew-pilot crew-pilot-start"><div><span className="kicker">Simpler initial experiment</span><h2>Explore one climb with one crew.</h2><p>Observe what members choose to contribute, whether help is useful, and what happens next. A familiar audience may feel more comfortable, but this pilot cannot establish that it caused sharing or comfort.</p></div><button className="primary-button coral" onClick={() => {
+    const first = new Date(Date.now() + 2 * 86400000); first.setHours(18, 0, 0, 0)
+    update({ ...demo, crewPilots: [...demo.crewPilots, { id: uid(), crewId: crew.id, gym: 'Movement Sunnyvale', sessionDates: [first.toISOString()], challenge: 'Pick one problem together. Explore different approaches. Capture one breakthrough or memorable moment.', contributions: [], nextInviteSent: false, nextSessionOutcome: 'not_discussed' }] }, 'crew_pilot_started')
+  }}>Start crew pilot</button></section>
+
+  const participants = new Set(pilot.contributions.map(item => item.memberName)).size
+  const responseCount = pilot.contributions.reduce((total, item) => total + (item.responses || []).length, 0)
+  const triedCount = pilot.contributions.filter(item => item.responseOutcome).length
+  const observations = [
+    { value: pilot.challenge ? '1' : '0', label: 'climb chosen' },
+    { value: String(pilot.contributions.length), label: 'optional contributions' },
+    { value: String(responseCount), label: 'crew responses' },
+    { value: String(triedCount), label: 'responses tried' }
+  ]
+  const saveSetup = () => {
+    if (!firstDate || !challenge.trim()) return
+    const updated = { ...pilot, gym, sessionDates: [new Date(firstDate).toISOString(), secondDate ? new Date(secondDate).toISOString() : undefined] as [string, string?], challenge: challenge.trim() }
+    update({ ...demo, crewPilots: demo.crewPilots.map(item => item.id === pilot.id ? updated : item) }, 'crew_pilot_planned')
+    setSetupOpen(false); notify('Crew pilot plan saved')
+  }
+  const addContribution = () => {
+    if (!note.trim()) return
+    const contribution = { id: uid(), memberName, kind, note: note.trim(), climbId: climbId || undefined, wantsHelp, responses: [], createdAt: new Date().toISOString() }
+    update({ ...demo, crewPilots: demo.crewPilots.map(item => item.id === pilot.id ? { ...item, contributions: [...item.contributions, contribution] } : item) }, 'crew_pilot_contribution_added')
+    setContributionOpen(false); setNote(''); setClimbId(''); setWantsHelp(false); notify('Added to the crew recap')
+  }
+  const addResponse = () => {
+    if (!responseToId || !responseNote.trim()) return
+    const response = { id: uid(), memberName: responseMember, kind: responseKind, note: responseNote.trim(), createdAt: new Date().toISOString() }
+    update({ ...demo, crewPilots: demo.crewPilots.map(item => item.id === pilot.id ? { ...item, contributions: item.contributions.map(contribution => contribution.id === responseToId ? { ...contribution, responses: [...(contribution.responses || []), response] } : contribution) } : item) }, 'crew_pilot_response_added')
+    setResponseToId(''); setResponseNote(''); notify('Response added to the crew exchange')
+  }
+  const recordOutcome = (contributionId: string, responseOutcome: 'helped' | 'not_for_me' | 'another_way') => {
+    update({ ...demo, crewPilots: demo.crewPilots.map(item => item.id === pilot.id ? { ...item, contributions: item.contributions.map(contribution => contribution.id === contributionId ? { ...contribution, responseOutcome } : contribution) } : item) }, 'crew_pilot_beta_tried')
+    notify('What happened was added to the observation')
+  }
+  const recordNextSession = (nextSessionOutcome: NonNullable<typeof pilot.nextSessionOutcome>) => {
+    update({ ...demo, crewPilots: demo.crewPilots.map(item => item.id === pilot.id ? { ...item, nextSessionOutcome } : item) }, 'crew_pilot_next_session_observed')
+  }
+  const inviteAgain = async () => {
+    const when = pilot.sessionDates[1] ? ` on ${formatTime(pilot.sessionDates[1])}` : ''
+    const text = `${crew.name}: ${pilot.challenge} We explored different approaches together and would love you at the next session${when}.`
+    const result = await platform.share.share({ title: `${crew.name} · climb together again`, text })
+    if (result === 'cancelled') return
+    update({ ...demo, crewPilots: demo.crewPilots.map(item => item.id === pilot.id ? { ...item, nextInviteSent: true } : item) }, 'crew_pilot_next_invite_sent')
+    notify(result === 'copied' ? 'Next-session invitation copied' : 'Next-session invitation shared')
+  }
+  const kindLabel = (value: CrewPilotContributionKind) => value === 'beta' ? 'Beta idea' : value === 'encouragement' ? 'Encouragement' : 'Crew moment'
+
+  return <section className="crew-pilot" aria-labelledby="crew-pilot-title">
+    <div className="crew-pilot-head"><div><span className="kicker">Simpler initial experiment · one existing crew</span><h2 id="crew-pilot-title">Can sharing different approaches help us climb together?</h2><p>{crew.name} explores one climb. Members may keep their attempt private or contribute a question, unfinished attempt, breakthrough, beta idea, or encouragement.</p></div><button className="secondary-button" onClick={() => setSetupOpen(true)}>Edit pilot plan</button></div>
+    <dl className="pilot-observations">{observations.map(item => <div key={item.label}><dt>{item.value}</dt><dd>{item.label}</dd></div>)}</dl>
+    <div className="pilot-layout"><article className="pilot-session-card"><span className="kicker">Shared climb</span><h3>{crew.name}</h3><p className="pilot-challenge">“{pilot.challenge}”</p><div className="pilot-dates"><div><small>Initial session</small><strong>{formatTime(pilot.sessionDates[0])}</strong></div><div><small>What happened next</small><strong>{pilot.sessionDates[1] ? formatTime(pilot.sessionDates[1]) : 'Not planned yet'}</strong></div></div><p className="pilot-gym">⌖ {pilot.gym} · {crew.members.length} crew members</p></article>
+      <article className="pilot-action-card"><span className="kicker">Optional contribution</span><h3>Share a moment or ask for help.</h3><p>An unfinished attempt, question, or breakthrough is welcome. A photo or video is optional, and keeping it private is always valid.</p><div className="pilot-actions"><button className="primary-button coral" onClick={() => setContributionOpen(true)}>Contribute to crew</button><button className="text-button" onClick={onCapture}>Save privately first →</button></div><small>{participants}/{crew.members.length} members chose to contribute · crew only on this device</small></article></div>
+    <div className="pilot-recap"><div className="pilot-recap-title"><div><span className="kicker">Crew exchange</span><h3>{pilot.contributions.length ? 'Attempts, questions, and responses' : 'No contribution is required to participate.'}</h3></div></div>
+      {pilot.contributions.length ? <div className="pilot-contributions">{pilot.contributions.map(item => { const climb = demo.climbs.find(value => value.id === item.climbId); const responses = item.responses || []; return <article key={item.id}>{climb?.mediaUrl && (climb.mediaKind === 'video' ? <video src={climb.mediaUrl} controls/> : <img src={climb.mediaUrl} alt="Crew contribution"/>)}<div><span>{kindLabel(item.kind)}{item.wantsHelp ? ' · asks for help' : ''}</span><strong>{item.memberName}</strong><p>{item.note}</p><div className="pilot-responses">{responses.map(response => <blockquote key={response.id}><b>{response.memberName} · {response.kind === 'beta' ? 'beta idea' : 'encouragement'}</b>{response.note}</blockquote>)}</div><div className="pilot-card-actions"><button className="text-button" onClick={() => { setResponseMember(crew.members.find(member => member !== item.memberName) || 'You'); setResponseToId(item.id) }}>Respond</button>{responses.length > 0 && !item.responseOutcome && <><small>Did {item.memberName} try a response?</small><button onClick={() => recordOutcome(item.id, 'helped')}>Helped</button><button onClick={() => recordOutcome(item.id, 'not_for_me')}>Not for me</button><button onClick={() => recordOutcome(item.id, 'another_way')}>Found another way</button></>}{item.responseOutcome && <small className="pilot-outcome">Tried · {item.responseOutcome === 'helped' ? 'helped' : item.responseOutcome === 'not_for_me' ? 'not for me' : 'found another way'}</small>}</div></div></article> })}</div> : <p className="pilot-empty">Members can still explore curated beta and climb together without posting. This pilot tests participant beta contribution only inside crews; public contribution remains untested.</p>}
+      <section className="pilot-next-session"><div><span className="kicker">Outcome to observe</span><h3>What happened after this session?</h3><p>Planning or completing another session is recorded as an outcome. It is not required to finish this experience and does not prove BETA caused the crew to return.</p></div><label>Next-session outcome<select value={pilot.nextSessionOutcome || 'not_discussed'} onChange={event => recordNextSession(event.target.value as NonNullable<typeof pilot.nextSessionOutcome>)}><option value="not_discussed">Not discussed</option><option value="interested">Crew expressed interest</option><option value="planned">Another session was planned</option><option value="completed">Another session happened</option><option value="not_planned">No session was planned</option></select></label><button className="secondary-button" onClick={() => void inviteAgain()}>{pilot.nextInviteSent ? 'Invitation shared ✓' : 'Invite to another session'}</button></section>
+      <details className="pilot-research-note"><summary>What this pilot can and cannot show</summary><p>It can reveal contribution behavior, reported comfort, responses, perceived usefulness, and what happens next. It cannot establish that familiarity caused sharing or comfort; that requires a separate audience comparison.</p></details></div>
+    {setupOpen && <AccessibleModal title="Set up the crew pilot" onClose={() => setSetupOpen(false)}><label>Gym<select value={gym} onChange={event => setGym(event.target.value)}>{MOVEMENT_GYMS.map(item => <option key={item.id}>{item.name}</option>)}</select></label><label>Initial session<input type="datetime-local" value={firstDate} onChange={event => setFirstDate(event.target.value)}/></label><label>Next session, if the crew plans one (optional)<input type="datetime-local" value={secondDate} onChange={event => setSecondDate(event.target.value)}/></label><label>Crew challenge<textarea value={challenge} onChange={event => setChallenge(event.target.value)} maxLength={240}/></label><p className="local-draft-note">The second session is an observed outcome, not a completion requirement.</p><div className="confirm-actions"><button className="secondary-button" onClick={() => setSetupOpen(false)}>Cancel</button><button className="primary-button coral" disabled={!firstDate || !challenge.trim()} onClick={saveSetup}>Save pilot plan</button></div></AccessibleModal>}
+    {contributionOpen && <AccessibleModal title="Add to the shared crew recap" onClose={() => setContributionOpen(false)}><label>Crew member<select value={memberName} onChange={event => setMemberName(event.target.value)}>{crew.members.map(member => <option key={member}>{member}</option>)}</select></label><label>What are they sharing?<select value={kind} onChange={event => setKind(event.target.value as CrewPilotContributionKind)}><option value="moment">Memorable moment</option><option value="beta">Different beta</option><option value="encouragement">Encouragement</option></select></label><label>What happened?<textarea value={note} onChange={event => setNote(event.target.value)} placeholder="The high right foot made the move feel possible..." maxLength={280}/></label><label>Attach a saved climb (optional)<select value={climbId} onChange={event => setClimbId(event.target.value)}><option value="">No photo or video</option>{demo.climbs.map(climb => <option key={climb.id} value={climb.id}>{climb.title}</option>)}</select></label><label className="check-label"><input type="checkbox" checked={wantsHelp} onChange={event => setWantsHelp(event.target.checked)}/> Invite the crew to suggest beta</label><div className="confirm-actions"><button className="secondary-button" onClick={() => setContributionOpen(false)}>Cancel</button><button className="primary-button coral" disabled={!note.trim()} onClick={addContribution}>Add to recap</button></div></AccessibleModal>}
+    {responseToId && <AccessibleModal title="Respond within the crew" onClose={() => setResponseToId('')}><label>Responding as<select value={responseMember} onChange={event => setResponseMember(event.target.value)}>{crew.members.map(member => <option key={member}>{member}</option>)}</select></label><label>Response type<select value={responseKind} onChange={event => setResponseKind(event.target.value as 'beta' | 'encouragement')}><option value="beta">Beta idea</option><option value="encouragement">Encouragement</option></select></label><label>Response<textarea value={responseNote} onChange={event => setResponseNote(event.target.value)} placeholder="Try turning your left hip toward the wall..." maxLength={280}/></label><p className="local-draft-note">This response inherits the crew-only audience of the original post.</p><div className="confirm-actions"><button className="secondary-button" onClick={() => setResponseToId('')}>Cancel</button><button className="primary-button coral" disabled={!responseNote.trim()} onClick={addResponse}>Add response</button></div></AccessibleModal>}
+  </section>
+}
+
+function MyCrewV2({ demo, update, notify, onFind, onCapture }: { demo: DemoState; update: (state: DemoState, event?: string) => void; notify: (value: string) => void; onFind: () => void; onCapture: () => void }) {
   const { t } = useTranslation()
   const [builder, setBuilder] = useState(false)
   const [crewName, setCrewName] = useState('')
@@ -443,6 +539,7 @@ function MyCrewV2({ demo, update, notify, onFind }: { demo: DemoState; update: (
     {inviteCrew && <AccessibleModal title={t('crew.inviteTitle')} onClose={() => setInviteCrew(null)}><p>{t('crewFlow.inviteHelp')}</p><label>{t('crewFlow.invitee')}<input value={invitee} onChange={event => setInvitee(event.target.value)} placeholder={t('crewFlow.invitePlaceholder')}/></label><div className="confirm-actions"><button className="secondary-button" onClick={() => setInviteCrew(null)}>{t('common.cancel')}</button><button className="primary-button coral" onClick={() => void sendInvite()}>{t('crewFlow.shareInvite')}</button></div></AccessibleModal>}
     {planCrew && <AccessibleModal title={t('crew.sessionTitle')} onClose={() => setPlanCrew(null)}><label>{t('find.gym')}<select value={gym} onChange={event => setGym(event.target.value)}>{MOVEMENT_GYMS.map(item => <option key={item.id}>{item.name}</option>)}</select></label><label>{t('crew.dateTime')}<input type="datetime-local" value={startsAt} onChange={event => setStartsAt(event.target.value)}/></label><p>{t('crew.rsvpNotice', { count: planCrew.members.length })}</p><div className="confirm-actions"><button className="secondary-button" onClick={() => setPlanCrew(null)}>{t('common.cancel')}</button><button className="primary-button coral" onClick={planSession}>{t('crew.propose')}</button></div></AccessibleModal>}
     {recapCrew && <AccessibleModal title={t('crewFlow.recapTitle', { crew: recapCrew.name })} onClose={() => setRecapCrew(null)}><section className="crew-recap"><div><span className="kicker">{t('crewFlow.crewMembers')}</span><div className="recap-members">{recapCrew.members.map(member => <span key={member}>{member}</span>)}</div></div><div><span className="kicker">{t('crewFlow.sessionPlans')}</span>{recapPlans.length ? <div className="recap-plans">{recapPlans.map(plan => <article key={`${plan.status}-${plan.id}`}><strong>{plan.gym}</strong><span>{formatTime(plan.startsAt)}</span><small>{t(plan.status === 'confirmed' ? 'crewFlow.confirmedPlan' : 'crewFlow.proposedPlan')}</small></article>)}</div> : <p>{t('crewFlow.noPlans')}</p>}</div><p className="local-draft-note">{t('crewFlow.recapPrivacy')}</p></section><button className="primary-button full" onClick={() => setRecapCrew(null)}>{t('common.close')}</button></AccessibleModal>}
+    <CrewPilotPanel demo={demo} update={update} notify={notify} onCapture={onCapture}/>
     <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{sessions.length ? t('crew.calendar') : t('crew.ready')}</h2><p>{sessions.length ? `${formatTime(sessions[0].startsAt)} · ${sessions[0].gym}` : t('crew.subtitle')}</p></div><button className="primary-button pale" onClick={onFind}>{sessions.length ? t('crew.viewSession') : t('home.find')} <Icon name="arrow"/></button></section>
     <section className="section-block"><div className="section-heading"><div><span className="kicker">{t('crew.favoritesLabel')}</span><h2>{t('crew.favorites')}</h2></div></div>{favoritePartners.length ? <div className="buddy-list">{favoritePartners.map(person => <article key={person.personId}><span className="person-avatar">{person.avatar}</span><div><strong>{person.personName}</strong><small>{person.gym}</small></div><button className="secondary-button" disabled={demo.favoriteRequests.includes(person.personId)} onClick={() => repeat(person.personId)}>{demo.favoriteRequests.includes(person.personId) ? t('crew.pending') : t('crew.plan')}</button></article>)}</div> : <p className="section-empty-copy">{t('crew.noFavorites')}</p>}</section>
     {demo.sessionProposals.length > 0 && <section className="section-block"><div className="section-heading"><div><span className="kicker">{t('crew.rsvp')}</span><h2>{t('crew.proposals')}</h2></div></div><div className="buddy-list">{demo.sessionProposals.filter(item => item.status === 'proposed').map(proposal => <article key={proposal.id}><span className="person-avatar">◷</span><div><strong>{demo.crews.find(item => item.id === proposal.crewId)?.name}</strong><small>{formatTime(proposal.startsAt)} · {proposal.gym}</small></div><button className="secondary-button" onClick={() => { const session = { id: uid(), crewId: proposal.crewId, partnerIds: demo.crews.find(item => item.id === proposal.crewId)?.members || ['you'], gym: proposal.gym, startsAt: proposal.startsAt, status: 'confirmed' as const }; update({ ...demo, sessionProposals: demo.sessionProposals.map(item => item.id === proposal.id ? { ...item, status: 'confirmed' } : item), sessions: [...demo.sessions, session] }, 'session_confirmed'); notify(t('crew.sessionConfirmed')) }}>{t('crew.confirmSession')}</button></article>)}</div></section>}
