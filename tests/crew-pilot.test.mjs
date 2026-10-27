@@ -42,3 +42,16 @@ test('crew pilot keeps contribution optional and states its causal limits', () =
   assert.match(app, /public contribution remains untested/)
   assert.match(demo, /crewPilots: parsed\.crewPilots \|\| initial\.crewPilots/)
 })
+
+test('home ends with the concrete crew example instead of a duplicate loop', () => {
+  assert.doesNotMatch(app, /className="story-strip"/)
+  assert.match(app, /<ProductTour onNavigate=\{onNavigate\}\/?>/)
+})
+
+test('challenge creation is not gated by the response reveal control', () => {
+  assert.doesNotMatch(app, /const \[reviewed, setReviewed\]/)
+  assert.doesNotMatch(app, /disabled=\{!reviewed/)
+  assert.match(app, /disabled=\{!challengeTitle\.trim\(\) \|\| !challengePrompt\.trim\(\)\}/)
+  assert.match(app, /revealResponses: false/)
+  assert.match(app, /t\('share\.hiddenHelp'\)/)
+})
