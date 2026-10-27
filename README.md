@@ -157,7 +157,7 @@ fictional demo.
 
 Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migrations through `0005_persistent_crews.sql`, Find a Partner uses real consented adult accounts, server-side invitation transitions, confirmed sessions, blocks, and reports; My Crew stores private crew membership and supports secure, expiring, revocable invitations. Crew sessions and recaps, challenges, the share wall, and social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
 
-The three home actions are independent:
+The three home actions remain independent, but the pilot puts **Climb With My Crew** first:
 
 - **Share a Climb:** upload without a crew, session, or route annotation, then create a private-by-default share card.
 - **Climb With My Crew:** in configured mode, create a persistent private crew and invite another consenting adult through an expiring, revocable link. In demo mode, create a local crew, open a recap, and plan another session.
@@ -269,10 +269,10 @@ Blocked on external configuration:
 
 ## Demo journeys
 
-1. **Solo climber:** Find Crew → create availability → invite Maya → simulate acceptance → My Crew → plan another session.
+1. **Crew pilot:** My Crew → Sunday Senders → review two sessions → use one crew-chosen challenge → add optional moments, beta, help requests, or encouragement → share the recap → invite the crew to climb again.
 2. **Friends:** My Climbs → upload (optional) → Share → Beta Challenge → lock response → reveal → create link.
-3. **Family:** My Crew → Sunday Senders → copy private invite → open private recap. Guardian/minor protections are labeled but are not server-enforced in demo mode.
-4. **Returning climber:** My Crew → Jordan → Plan another session.
+3. **Solo climber:** Find a Partner → create availability → invite Maya → simulate acceptance → My Crew → plan another session.
+4. **Returning climber:** My Crew → open the shared recap → invite the crew to the second session.
 
 ## Safety and privacy limitations
 
@@ -282,11 +282,15 @@ Before real users: implement authenticated server-enforced authorization, conten
 
 ## Product metrics
 
-The local demo instruments: `availability_created`, `partner_invite_sent`, `invite_accepted`, `session_confirmed`, `session_completed`, `repeat_session_requested`, `climb_uploaded`, `share_card_created`, `challenge_shared`, `challenge_joined`, and `crew_created`. No adoption data is fabricated or transmitted.
+The local demo instruments: `availability_created`, `partner_invite_sent`, `invite_accepted`, `session_confirmed`, `session_completed`, `repeat_session_requested`, `climb_uploaded`, `share_card_created`, `challenge_shared`, `challenge_joined`, `crew_created`, `crew_pilot_started`, `crew_pilot_contribution_added`, `crew_pilot_response_added`, `crew_pilot_beta_tried`, `crew_pilot_next_invite_sent`, and `crew_pilot_next_session_observed`. These events record actions, not causes or conclusions. No adoption data is fabricated or transmitted.
 
 ## Next experiment
 
-Recruit 20–40 recreational climbers across bouldering, ropes, existing friend groups, parents, and people who sometimes need partners. Give each person one real weekend task: share a climb, coordinate their normal crew, or find a partner. Measure time to first useful outcome, link participation, confirmed/completed sessions, and whether they plan another climb. Interview drop-offs within 24 hours, especially anyone who avoids uploading or partner discovery because of privacy or trust.
+Start with one existing crew of 5–8 climbers at one gym. This is the simpler initial experiment, not an assumption that crew-first sharing is better for engagement or comfort. Let the crew choose one challenge: “Pick one problem together. Explore different approaches. Capture one breakthrough or memorable moment.” Completing the problem, contributing a post, and capturing media are optional.
+
+Distinguish curated beta consumption from participant beta contribution. Observe whether someone tries a curated approach; chooses to contribute an unfinished attempt, question, breakthrough, beta idea, or encouragement within the crew; receives a response; tries that response; and reports whether it helped, did not fit, or inspired another way. Public participant contribution remains untested.
+
+The pilot can reveal sharing behavior and perceived comfort, but it cannot establish that familiarity caused either; that requires a separate audience comparison. Treat interest in, planning of, or attendance at another session as an outcome to observe—not a completion requirement or proof that BETA caused retention.
 
 ## Live site
 

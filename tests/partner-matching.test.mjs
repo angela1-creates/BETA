@@ -71,10 +71,11 @@ test('pilot navigation and product tour expose the complete BETA loop', () => {
   assert.match(app, /\['learn', t\('nav\.routeLab'\)\]/)
   assert.match(app, /\['climbs', t\('nav\.climbs'\)\]/)
   assert.match(app, /\['share', t\('nav\.challenges'\)\]/)
-  assert.match(app, /\['find', t\('nav\.connect'\)\]/)
-  for (const key of ['read', 'climbs', 'challenge', 'connect']) assert.match(app, new RegExp(`key: '${key}'`))
+  assert.match(app, /\['crew', t\('nav\.connect'\)\]/)
+  for (const key of ['pick', 'explore', 'try', 'share', 'support', 'return']) assert.match(app, new RegExp(`key: '${key}'`))
   assert.match(app, /nextConfirmedSession/)
   assert.match(app, /calendarHref\(nextSession\)/)
+  assert.doesNotMatch(app, /quick-grid|Share a Climb|Climb With My Crew/)
 })
 
 test('Route Lab reduces annotation friction and identifies the target route', async () => {

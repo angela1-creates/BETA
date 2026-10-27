@@ -82,6 +82,39 @@ export interface Crew {
   guardianManaged?: boolean
 }
 
+export type CrewPilotContributionKind = 'moment' | 'beta' | 'encouragement'
+
+export interface CrewPilotResponse {
+  id: string
+  memberName: string
+  kind: 'beta' | 'encouragement'
+  note: string
+  createdAt: string
+}
+
+export interface CrewPilotContribution {
+  id: string
+  memberName: string
+  kind: CrewPilotContributionKind
+  note: string
+  climbId?: string
+  wantsHelp: boolean
+  responses: CrewPilotResponse[]
+  responseOutcome?: 'helped' | 'not_for_me' | 'another_way'
+  createdAt: string
+}
+
+export interface CrewPilot {
+  id: string
+  crewId: string
+  gym: string
+  sessionDates: [string, string?]
+  challenge: string
+  contributions: CrewPilotContribution[]
+  nextInviteSent: boolean
+  nextSessionOutcome?: 'not_discussed' | 'interested' | 'planned' | 'completed' | 'not_planned'
+}
+
 export interface CrewInvitation {
   id: string
   crewId: string
@@ -119,6 +152,7 @@ export interface DemoState {
   climbs: ClimbMoment[]
   challenges: BetaChallenge[]
   crews: Crew[]
+  crewPilots: CrewPilot[]
   crewInvitations: CrewInvitation[]
   sessionProposals: SessionProposal[]
   safety: SafetySettings
