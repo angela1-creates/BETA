@@ -41,7 +41,7 @@ test('invitation acceptance is an atomic server-side session transition', () => 
 test('connected account copy distinguishes real and local-only features', () => {
   assert.match(accountModal, /Pilot backend connected/)
   assert.match(accountModal, /adult partner matching, private crews, and crew membership sync/)
-  assert.match(accountModal, /Challenges and the Share Wall remain stored locally/)
+  assert.match(accountModal, /Challenges and explicit share links remain stored locally/)
   assert.doesNotMatch(accountModal, /matching remain demo-only/)
 })
 
@@ -55,7 +55,6 @@ test('share card handoff and media-backed download are explicit', () => {
   assert.match(copy, /manageShare: 'View or manage sharing →'/)
   assert.match(app, /onShare\(climb\.id\)/)
   assert.match(app, /drawCover\(ctx, media/)
-  assert.match(app, /shareWall\.description/)
   assert.match(app, /shareWall\.disclosure/)
   assert.match(app, /shareWall\.copy/)
   assert.match(app, /shared a climb on BETA/)
@@ -71,7 +70,7 @@ test('pilot navigation and product tour expose the complete BETA loop', () => {
   assert.match(app, /\['learn', t\('nav\.routeLab'\)\]/)
   assert.match(app, /\['climbs', t\('nav\.climbs'\)\]/)
   assert.match(app, /\['share', t\('nav\.challenges'\)\]/)
-  assert.match(app, /\['crew', t\('nav\.connect'\)\]/)
+  assert.match(app, /\['crew', t\('nav\.crew'\)\]/)
   for (const key of ['pick', 'explore', 'try', 'share', 'support', 'return']) assert.match(app, new RegExp(`key: '${key}'`))
   assert.match(app, /nextConfirmedSession/)
   assert.match(app, /calendarHref\(nextSession\)/)
@@ -88,6 +87,25 @@ test('Route Lab reduces annotation friction and identifies the target route', as
   assert.match(canvas, /routeLab\.canvas\.solve/)
 })
 
+test('public beta discovery is independent of crew membership and honest about coverage', async () => {
+  const routeLab = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  assert.match(routeLab, /className="discovery-filters"/)
+  assert.match(routeLab, /routeLab\.library\.request/)
+  assert.match(routeLab, /routeLab\.library\.curatedCoverage/)
+  assert.match(routeLab, /publicHintLevels/)
+  assert.doesNotMatch(routeLab, /Crew|crewId|crew membership/)
+  assert.match(app, /function SharedDiscoveryActions/)
+  assert.match(app, /Explore available beta/)
+  assert.match(app, /onExplore=\{\(\) => open\('learn'\)\}/)
+})
+
+test('connected pilots require an account for personal recording, not curated hints', async () => {
+  const routeLab = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  assert.match(routeLab, /backendConfigured && \(!auth\.session \|\| !auth\.profile\?\.consentedAt\)/)
+  assert.match(routeLab, /canRecord \? updateAttempt\(\{ hintLevelUsed: level \}\) : setPublicHintLevels/)
+  assert.match(app, /function MyClimbs[\s\S]*backendConfigured && \(!auth\.session \|\| !auth\.profile\?\.consentedAt\)/)
+})
+
 test('Connect separates partner discovery from existing crews', async () => {
   const styles = await readFile(new URL('../src/social-fixes.css', import.meta.url), 'utf8')
   assert.match(app, /function ConnectTabs/)
@@ -97,11 +115,17 @@ test('Connect separates partner discovery from existing crews', async () => {
   assert.match(styles, /\.connect-tabs/)
 })
 
-test('Challenges opens on Beta Challenge and hides the duplicate My Climb tab', async () => {
+test('Challenges opens on Beta Challenge without a Share Wall tab', async () => {
   const styles = await readFile(new URL('../src/social-fixes.css', import.meta.url), 'utf8')
-  assert.match(app, /useState<'climb'\|'compare'\|'challenge'\|'wall'>\(initialSelected \? 'climb' : 'challenge'\)/)
+  assert.match(app, /useState<'climb'\|'compare'\|'challenge'>\(initialSelected \? 'climb' : 'challenge'\)/)
+  assert.doesNotMatch(app, /function SharedWall|tab === 'wall'/)
   assert.match(styles, /\.segmented > button:first-child \{ display: none; \}/)
   assert.match(styles, /button:nth-child\(3\) \{ order: 1; \}/)
+})
+
+test('My Climbs keeps Route Lab contextual and omits the Share Wall', () => {
+  assert.match(app, /className="route-lab-inline"/)
+  assert.doesNotMatch(app, /className="deep-panel"|<SharedWall/)
 })
 
 test('link previews describe the connected climbing product', () => {
