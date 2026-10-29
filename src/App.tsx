@@ -15,6 +15,8 @@ import { useResearchAuth } from './researchAuth'
 import { researchBackend } from './services/researchBackend'
 import { useTranslation } from 'react-i18next'
 import { routeLabCopy } from './routeLabCopy'
+import { ResearchAccountModal } from './components/ResearchAccountModal'
+import { backendConfigured } from './services/supabase'
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 const nextPlacementTool: Record<Exclude<Tool, 'MOVE'>, Tool> = { LH: 'RH', RH: 'LF', LF: 'RF', RF: 'LH' }
@@ -34,8 +36,11 @@ function App() {
   const [selectedId, setSelectedId] = useState<string>()
   const [history, setHistory] = useState<MoveStep[][]>([])
   const [future, setFuture] = useState<MoveStep[][]>([])
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [publicHintLevels, setPublicHintLevels] = useState<Record<string, number>>({})
 
   const attempt = attempts[route.id] || emptyAttempt()
+  const canRecord = !backendConfigured || Boolean(auth.session && auth.profile?.consentedAt)
   const localizedRoute = useMemo<Route>(() => ({ ...route, title: routeLabCopy(route.title, i18n.language), grade: routeLabCopy(route.grade, i18n.language), colorName: routeLabCopy(route.colorName, i18n.language), notes: routeLabCopy(route.notes, i18n.language), insight: routeLabCopy(route.insight, i18n.language), hints: route.hints.map(hint => routeLabCopy(hint, i18n.language)) }), [route, i18n.language])
   const key = mode === 'predicted' ? 'predictedBeta' : 'actualBeta'
   const steps = attempt[key]
@@ -58,7 +63,10 @@ function App() {
     return () => { active = false }
   }, [auth.session?.user.id, auth.profile?.consentedAt])
 
-  const updateAttempt = (change: Partial<Attempt>) => { markAttemptDirty(route.id); setSyncStatus('local'); setAttempts(prev => ({ ...prev, [route.id]: { ...(prev[route.id] || emptyAttempt()), ...change } })) }
+  const updateAttempt = (change: Partial<Attempt>) => {
+    if (backendConfigured && (!auth.session || !auth.profile?.consentedAt)) { setAccountOpen(true); return }
+    markAttemptDirty(route.id); setSyncStatus('local'); setAttempts(prev => ({ ...prev, [route.id]: { ...(prev[route.id] || emptyAttempt()), ...change } }))
+  }
   useEffect(() => {
     if (!auth.session || !auth.profile?.consentedAt || !loadDirtyAttemptIds(loadAttempts()).has(route.id)) return
     const timer = window.setTimeout(() => {
@@ -86,6 +94,7 @@ function App() {
   const redo = () => { if (!future.length) return; const next = future[0]; setHistory(h => [...h, steps]); setFuture(f => f.slice(1)); updateAttempt({ [key]: next }) }
   const openRoute = (next: Route) => { setRoute(next); setScreen('workspace'); setMode('predicted'); setHistory([]); setFuture([]); window.scrollTo(0, 0) }
   const uploadRoute = async (file: File) => {
+    if (backendConfigured && (!auth.session || !auth.profile?.consentedAt)) { setAccountOpen(true); return }
     if (auth.session && auth.profile?.consentedAt) {
       setRouteUploadProgress(1)
       try { const next = await researchBackend.createUploadedRoute(file, setRouteUploadProgress); setUploadedRoutes(current => [next, ...current]); openRoute(next) }
@@ -123,7 +132,7 @@ function App() {
         <div className="side-column">
           <SequencePanel steps={steps} selectedId={selectedId} onSelect={setSelectedId} onUpdate={editStep} onDelete={deleteStep} onMove={reorder} />
           <div className="confidence-card"><label><span>{mode === 'predicted' ? t('routeLab.workspace.confidenceBefore') : t('routeLab.workspace.confidenceAfter')}</span><strong>{mode === 'predicted' ? attempt.confidenceBefore : attempt.confidenceAfter}/5</strong><input type="range" min="1" max="5" value={mode === 'predicted' ? attempt.confidenceBefore : attempt.confidenceAfter} onChange={e => updateAttempt(mode === 'predicted' ? { confidenceBefore: Number(e.target.value) } : { confidenceAfter: Number(e.target.value) })} /></label></div>
-          <HintPanel hints={localizedRoute.hints} revealed={attempt.hintLevelUsed} onReveal={level => updateAttempt({ hintLevelUsed: level })} />
+          <HintPanel hints={localizedRoute.hints} revealed={canRecord ? attempt.hintLevelUsed : publicHintLevels[route.id] || 0} onReveal={level => canRecord ? updateAttempt({ hintLevelUsed: level }) : setPublicHintLevels(current => ({ ...current, [route.id]: level }))} />
           <AttemptMedia attempt={attempt} canSync={Boolean(auth.session && auth.profile?.consentedAt)} onUpload={uploadAttemptMedia} onDelete={deleteAttemptMedia}/>
         </div>
       </div>
@@ -133,6 +142,7 @@ function App() {
     {screen === 'research' && <ResearchSummary attempts={attempts} />}
     {screen === 'about' && <About />}
     {screen !== 'workspace' && <Footer />}
+    {accountOpen && <ResearchAccountModal onClose={() => setAccountOpen(false)}/>}
   </div>
 }
 
@@ -153,11 +163,29 @@ function Library({ onOpen, attempts, routes, onUpload, uploadProgress, cloudEnab
   const completed = useMemo(() => Object.values(attempts).filter(a => a.predictedBeta.length).length, [attempts])
   const uploadRef = useRef<HTMLInputElement>(null)
   const [uploadError, setUploadError] = useState('')
+  const [query, setQuery] = useState('')
+  const [grade, setGrade] = useState('all')
+  const [gym, setGym] = useState('all')
+  const [requestOpen, setRequestOpen] = useState(false)
+  const [requestGym, setRequestGym] = useState('')
+  const [requestClimb, setRequestClimb] = useState('')
+  const [requestSent, setRequestSent] = useState(false)
+  const localizedRoutes = useMemo(() => routes.map(route => ({ original: route, localized: { ...route, title: routeLabCopy(route.title, i18n.language), grade: routeLabCopy(route.grade, i18n.language), colorName: routeLabCopy(route.colorName, i18n.language), insight: routeLabCopy(route.insight, i18n.language), notes: routeLabCopy(route.notes, i18n.language) } })), [routes, i18n.language])
+  const grades = useMemo(() => [...new Set(localizedRoutes.map(item => item.localized.grade))], [localizedRoutes])
+  const gyms = useMemo(() => [...new Set(routes.map(route => route.gym).filter((value): value is string => Boolean(value)))], [routes])
+  const filtered = localizedRoutes.filter(({ localized }) => {
+    const search = query.trim().toLowerCase()
+    const matchesQuery = !search || [localized.title, localized.grade, localized.colorName, localized.insight, localized.notes, localized.gym].filter(Boolean).join(' ').toLowerCase().includes(search)
+    return matchesQuery && (grade === 'all' || localized.grade === grade) && (gym === 'all' || localized.gym === gym)
+  })
   const upload = (file?: File) => { if (!file || !file.type.startsWith('image/')) return; setUploadError(''); void onUpload(file).catch(cause => setUploadError(cause instanceof Error ? cause.message : t('routeLab.library.uploadError'))) }
   return <main className="page library-page"><div className="page-intro library-intro"><div><span className="eyebrow">{t('routeLab.library.kicker')}</span><h1>{t('routeLab.library.title')}</h1><p>{t('routeLab.library.description')}</p></div>{completed > 0 && <span className="local-progress">{t('routeLab.library.savedCount', { count: completed })}</span>}</div>
+    <section className="beta-coverage"><div><span className="public-access-pill">{t('routeLab.library.public')}</span><strong>{t('routeLab.library.coverage', { count: routes.length })}</strong><p>{gyms.length ? t('routeLab.library.gymCoverage', { count: gyms.length }) : t('routeLab.library.curatedCoverage')}</p></div><button className="secondary-button" onClick={() => { setRequestOpen(true); setRequestSent(false) }}>{t('routeLab.library.request')}</button></section>
+    <section className="discovery-filters" aria-label={t('routeLab.library.filters')}><label>{t('routeLab.library.search')}<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder={t('routeLab.library.searchPlaceholder')}/></label><label>{t('routeLab.library.grade')}<select value={grade} onChange={event => setGrade(event.target.value)}><option value="all">{t('routeLab.library.allGrades')}</option>{grades.map(value => <option key={value}>{value}</option>)}</select></label><label>{t('routeLab.library.gym')}<select value={gym} onChange={event => setGym(event.target.value)}><option value="all">{t('routeLab.library.allSources')}</option>{gyms.map(value => <option key={value}>{value}</option>)}</select></label></section>
+    {requestOpen && <form className="climb-request" onSubmit={event => { event.preventDefault(); if (!requestGym.trim() || !requestClimb.trim()) return; setRequestSent(true) }}><div><span className="eyebrow">{t('routeLab.library.request')}</span><strong>{t('routeLab.library.requestTitle')}</strong><p>{t('routeLab.library.requestHelp')}</p></div><label>{t('routeLab.library.requestGym')}<input value={requestGym} onChange={event => setRequestGym(event.target.value)} required/></label><label>{t('routeLab.library.requestClimb')}<input value={requestClimb} onChange={event => setRequestClimb(event.target.value)} required/></label><div className="climb-request-actions"><button className="secondary-button" type="button" onClick={() => setRequestOpen(false)}>{t('common.cancel')}</button><button className="primary-button" type="submit">{t('routeLab.library.submitRequest')}</button></div>{requestSent && <p className="request-confirmation" role="status">{t('routeLab.library.requested')}</p>}</form>}
     <input ref={uploadRef} className="visually-hidden" type="file" accept="image/*" onChange={e => upload(e.target.files?.[0])} />
     <button className="upload-route" disabled={uploadProgress > 0} onClick={() => uploadRef.current?.click()}><span>＋</span><div><strong>{t('routeLab.library.ownRoute')}</strong><small>{cloudEnabled ? t('routeLab.library.cloudUpload') : t('routeLab.library.localUpload')}</small></div><b>{uploadProgress > 0 ? `${uploadProgress}%` : t('routeLab.library.upload')}</b></button>{uploadError && <p className="form-error" role="alert">{uploadError}</p>}
-    <div className="route-grid">{routes.map((route, i) => { const r = { ...route, title: routeLabCopy(route.title, i18n.language), grade: routeLabCopy(route.grade, i18n.language), colorName: routeLabCopy(route.colorName, i18n.language), insight: routeLabCopy(route.insight, i18n.language) }; return <button className={`route-card ${i < 3 ? 'featured' : ''}`} key={r.id} onClick={() => onOpen(route)}><div className="route-image"><img src={r.image} alt={t('routeLab.library.routeAlt', { color: r.colorName, grade: r.grade })} /><span className="grade"><i style={{ background: r.accent }} />{r.grade} · {r.colorName}</span>{attempts[r.id]?.predictedBeta.length ? <span className="saved"><Icon name="check" size={14} /> {t('routeLab.library.saved')}</span> : null}</div><div className="route-card-copy"><span>{String(i + 1).padStart(2, '0')}</span><div><h2>{r.title}</h2><p>{r.insight}</p></div><b>↗</b></div></button> })}</div>
+    {filtered.length ? <div className="route-grid">{filtered.map(({ original: route, localized: r }, i) => <button className={`route-card ${i < 3 ? 'featured' : ''}`} key={r.id} onClick={() => onOpen(route)}><div className="route-image"><img src={r.image} alt={t('routeLab.library.routeAlt', { color: r.colorName, grade: r.grade })} /><span className="grade"><i style={{ background: r.accent }} />{r.grade} · {r.colorName}</span>{attempts[r.id]?.predictedBeta.length ? <span className="saved"><Icon name="check" size={14} /> {t('routeLab.library.saved')}</span> : null}</div><div className="route-card-copy"><span>{String(i + 1).padStart(2, '0')}</span><div><h2>{r.title}</h2><p>{r.insight}</p></div><b>↗</b></div></button>)}</div> : <section className="discovery-empty"><span>◇</span><h2>{t('routeLab.library.noMatch')}</h2><p>{t('routeLab.library.noMatchHelp')}</p><button className="primary-button" onClick={() => { setRequestOpen(true); setRequestSent(false) }}>{t('routeLab.library.request')}</button></section>}
   </main>
 }
 

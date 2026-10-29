@@ -40,6 +40,7 @@ export interface Route {
   insight: string
   accent: string
   hints: string[]
+  gym?: string
   remoteId?: string
   mediaPath?: string
   ownerUploaded?: boolean

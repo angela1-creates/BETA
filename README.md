@@ -4,8 +4,9 @@
 
 This branch adds a consent-based Supabase research path for Route Lab. Signed-in,
 consented testers can keep private routes, predictions, attempts, reflections, and
-climbing media across browsers. Local Route Lab drafts continue to work when the
-backend is unavailable or before a tester signs in. Adult partner matching can also
+climbing media across browsers. Public beta browsing and curated hints do not require
+an account. When the backend is configured, recording an attempt or personal route
+requires a signed-in, consented account; the unconfigured demo keeps drafts locally. Adult partner matching can also
 run against Supabase after migration `0004_partner_matching.sql`. Migration
 `0005_persistent_crews.sql` adds private, persistent crews and secure, revocable
 invitation links. Challenges and social media sharing remain local demos in this release.
@@ -155,7 +156,7 @@ fictional demo.
 
 ## Demo mode
 
-Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migrations through `0005_persistent_crews.sql`, Find a Partner uses real consented adult accounts, server-side invitation transitions, confirmed sessions, blocks, and reports; My Crew stores private crew membership and supports secure, expiring, revocable invitations. Crew sessions and recaps, challenges, the share wall, and social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
+Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migrations through `0005_persistent_crews.sql`, Find a Partner uses real consented adult accounts, server-side invitation transitions, confirmed sessions, blocks, and reports; My Crew stores private crew membership and supports secure, expiring, revocable invitations. Crew sessions and recaps, challenges, and explicit social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
 
 The three home actions remain independent, but the pilot puts **Climb With My Crew** first:
 
@@ -172,6 +173,8 @@ The interface uses draft-first publishing: selecting media or starting a challen
 The original Route Lab remains available from **My Climbs → Open Route Lab**:
 
 - 23 sample studies using six real indoor-climbing photos. Credits live in `public/routes/PHOTO_CREDITS.md`; V1–V6 are BETA study levels, not verified gym grades.
+- Public search and filtering by climb/movement, available grade, and verified gym source when source metadata exists
+- Honest coverage messaging plus a local “Request this climb” research fallback when beta is unavailable
 - Clear difficulty and hold-color labels, such as `V3 · Coral`
 - Tap-based LH, RH, LF, and RF placement
 - Two-tap movement arrows
@@ -180,7 +183,7 @@ The original Route Lab remains available from **My Climbs → Open Route Lab**:
 - Visual comparison with neutral movement observations
 - Four deliberately gated hint levels
 - Confidence and reflection prompts
-- Local browser persistence
+- Local browser persistence in demo mode; configured pilots require an account for personal attempts
 - Small demo research dashboard and portfolio-style experiment page
 
 Manual annotation is never required for social sharing.
@@ -250,7 +253,7 @@ Completed locally:
 - Email magic-link research login, optional gated Google OAuth, research consent, and account controls
 - Local-first Route Lab sync for routes, predictions, attempts, reflections, and private photo/video media
 - Owner-scoped research tables, private Storage helpers, account/media deletion, referral attribution, and aggregate recruitment metrics
-- Direct My Climbs -> share-card handoff, media-backed downloadable cards, an opt-in local share wall, and a landing-page product walkthrough
+- Direct My Climbs -> share-card handoff, media-backed downloadable cards, and a landing-page product walkthrough
 - Real adult partner availability, discovery, invitations, acceptance/decline, session confirmation, blocking, and reporting when migration `0004` is applied
 - Persistent private crews, member-only visibility, atomic invitation acceptance, and revocable seven-day crew links when migration `0005` is applied
 
