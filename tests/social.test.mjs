@@ -68,9 +68,10 @@ test('the next confirmed climbing session is selected chronologically', () => {
 })
 
 test('confirmed sessions can be downloaded as calendar events', () => {
-  const href = calendarHref({ id: 'session-1', gymName: 'Movement Sunnyvale', startsAt: '2030-01-02T18:00:00.000Z', status: 'confirmed' })
+  const href = calendarHref({ id: 'session-1', gymName: 'Movement Sunnyvale', startsAt: '2030-01-02T18:00:00.000Z', endsAt: '2030-01-02T21:00:00.000Z', status: 'confirmed' })
   const calendar = decodeURIComponent(href.split(',')[1])
   assert.match(calendar, /BEGIN:VCALENDAR/)
   assert.match(calendar, /DTSTART:20300102T180000Z/)
+  assert.match(calendar, /DTEND:20300102T210000Z/)
   assert.match(calendar, /LOCATION:Movement Sunnyvale/)
 })
