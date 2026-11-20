@@ -1,4 +1,6 @@
 @media (max-width: 760px) {
+  .page-title-actions { width: 100%; margin-top: 22px; }
+  .page-title-actions .primary-button, .page-title-actions .secondary-button { width: 100%; }
   .social-shell,
   .social-home,
   .social-page,
@@ -63,6 +65,10 @@
 .connection-callout p { margin: 0; color: #65716c; }
 .board-error { margin: 0 0 20px; padding: 12px 15px; border-radius: 8px; background: #fff0ec; }
 .partner-inbox { margin: 35px 0; }
+.page-title-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.partner-sessions { margin: 35px 0 55px; }
+.partner-sessions .section-heading { margin-bottom: 18px; }
+.sms-status { padding: 14px; border-radius: 8px; background: #eef3f0; color: #365247; }
 .confirmed-strip { display: flex; align-items: center; gap: 13px; padding: 16px 20px; margin-bottom: 20px; border-radius: 10px; background: #20332c; color: #fff; }
 .confirmed-strip>span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #ffb342; color: #20332c; font-weight: 800; }
 .confirmed-strip strong, .confirmed-strip small { display: block; }

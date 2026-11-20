@@ -34,7 +34,8 @@ export interface ClimbingSession {
   partnerIds: string[]
   gym: string
   startsAt: string
-  status: 'confirmed' | 'completed' | 'cancelled'
+  endsAt?: string
+  status: 'confirmed' | 'reconfirmation_pending' | 'reconfirmed' | 'at_risk' | 'completed' | 'cancelled' | 'disputed'
   crewId?: string
   note?: string
 }
@@ -209,11 +210,11 @@ export const trackEvent = (state: DemoState, name: string): DemoState => ({
   events: [...state.events.slice(-99), { name, at: new Date().toISOString() }]
 })
 
-export type CalendarSession = { id: string; gymName?: string; gym?: string; startsAt: string; status: 'confirmed' | 'completed' | 'cancelled' }
+export type CalendarSession = { id: string; gymName?: string; gym?: string; startsAt: string; endsAt?: string; status: 'confirmed' | 'reconfirmation_pending' | 'reconfirmed' | 'at_risk' | 'completed' | 'cancelled' | 'disputed' }
 
 export function nextConfirmedSession<T extends CalendarSession>(sessions: T[], now = new Date()): T | undefined {
   return sessions
-    .filter(session => session.status === 'confirmed' && new Date(session.startsAt).getTime() >= now.getTime())
+    .filter(session => ['confirmed', 'reconfirmation_pending', 'reconfirmed', 'at_risk'].includes(session.status) && new Date(session.startsAt).getTime() >= now.getTime())
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0]
 }
 
@@ -221,7 +222,7 @@ const calendarStamp = (value: Date) => value.toISOString().replace(/[-:]/g, '').
 
 export function calendarHref(session: CalendarSession) {
   const start = new Date(session.startsAt)
-  const end = new Date(start.getTime() + 2 * 60 * 60 * 1000)
+  const end = session.endsAt ? new Date(session.endsAt) : new Date(start.getTime() + 2 * 60 * 60 * 1000)
   const location = session.gymName || session.gym || 'Climbing gym'
   const escape = (value: string) => value.replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n')
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BETA//Climbing Session//EN', 'BEGIN:VEVENT', `UID:${escape(session.id)}@beta-climb`, `DTSTAMP:${calendarStamp(new Date())}`, `DTSTART:${calendarStamp(start)}`, `DTEND:${calendarStamp(end)}`, 'SUMMARY:BETA climbing session', `LOCATION:${escape(location)}`, 'DESCRIPTION:Confirmed through BETA. Meet in the lobby and complete normal partner safety checks.', 'END:VEVENT', 'END:VCALENDAR']

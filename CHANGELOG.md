@@ -2,6 +2,25 @@
 
 All notable changes to BETA are documented here.
 
+## [0.2.0.0] - 2026-11-20
+
+### Added
+
+- Let adult climbers post flexible one-to-three-hour availability windows and express interest without hiding the request from other potential partners.
+- Manage confirmed partner sessions with calendar downloads, cancellation, reconfirmation, and mutually reported completion outcomes.
+- Offer explicit opt-in SMS verification and server-delivered notifications for partner interest, confirmations, reminders, cancellations, and at-risk sessions.
+- Document the focused belay-partner pilot, its safety boundaries, notification strategy, success metrics, and retention loop.
+
+### Changed
+
+- Keep competing partner interests open until the request owner accepts one, then close alternatives and create the session atomically.
+- Use the session's actual end time in calendar events instead of assuming every climb lasts two hours.
+
+### Fixed
+
+- Serialize overlapping match acceptance and simultaneous session responses so concurrent actions cannot create conflicting plans or leave sessions in the wrong state.
+- Claim notification jobs atomically and preserve fast delivery callbacks to prevent duplicate SMS messages or lost delivery status.
+
 ## [0.1.1.0] - 2026-09-09
 
 ### Changed

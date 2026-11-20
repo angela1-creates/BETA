@@ -9,7 +9,12 @@ an account. When the backend is configured, recording an attempt or personal rou
 requires a signed-in, consented account; the unconfigured demo keeps drafts locally. Adult partner matching can also
 run against Supabase after migration `0004_partner_matching.sql`. Migration
 `0005_persistent_crews.sql` adds private, persistent crews and secure, revocable
-invitation links. Challenges and social media sharing remain local demos in this release.
+invitation links. Migration `0007_partner_sessions_and_notifications.sql` adds
+non-locking partner interest, flexible session windows, cancellation,
+reconfirmation, completion outcomes, and a private notification outbox. Migration
+`0008_partner_session_concurrency.sql` serializes overlapping matches and notification
+delivery. Challenges
+and social media sharing remain local demos in this release.
 
 The implemented flow is:
 
@@ -36,6 +41,7 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 supabase functions deploy delete-account
 supabase functions deploy request-research-invite --no-verify-jwt
+supabase functions deploy partner-sms --no-verify-jwt
 ```
 
 `delete-account` must retain gateway JWT verification. The invitation function is
@@ -50,6 +56,25 @@ not use `*` for the pilot.
 supabase secrets set ALLOWED_ORIGINS=https://beta-climb.vercel.app,https://angela1-creates.github.io
 supabase secrets set APP_REDIRECT_URL=https://beta-climb.vercel.app/
 ```
+
+Partner SMS is disabled until a registered Twilio sender and Verify service are
+configured. Never add these values to Vite variables or browser code:
+
+```bash
+supabase secrets set TWILIO_ACCOUNT_SID=YOUR_ACCOUNT_SID
+supabase secrets set TWILIO_AUTH_TOKEN=YOUR_AUTH_TOKEN
+supabase secrets set TWILIO_MESSAGING_SERVICE_SID=YOUR_REGISTERED_MESSAGING_SERVICE
+supabase secrets set TWILIO_VERIFY_SERVICE_SID=YOUR_VERIFY_SERVICE
+supabase secrets set PARTNER_NOTIFICATION_DISPATCH_SECRET=LONG_RANDOM_SECRET
+supabase secrets set PARTNER_NOTIFICATION_WEBHOOK_SECRET=DIFFERENT_LONG_RANDOM_SECRET
+supabase secrets set PARTNER_NOTIFICATION_STATUS_CALLBACK_URL='https://YOUR_PROJECT.supabase.co/functions/v1/partner-sms?webhook=status&token=YOUR_WEBHOOK_SECRET'
+```
+
+Configure the Twilio inbound webhook to the same function with
+`?webhook=inbound&token=YOUR_WEBHOOK_SECRET`. Schedule `{ "action": "dispatch" }`
+POST requests with the `x-dispatch-secret` header from a trusted cron service. The
+function remains inert and returns a configuration error when provider secrets are
+absent.
 
 Supabase supplies `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and
 `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. The service-role key must never be
@@ -156,7 +181,7 @@ fictional demo.
 
 ## Demo mode
 
-Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migrations through `0005_persistent_crews.sql`, Find a Partner uses real consented adult accounts, server-side invitation transitions, confirmed sessions, blocks, and reports; My Crew stores private crew membership and supports secure, expiring, revocable invitations. Crew sessions and recaps, challenges, and explicit social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
+Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migrations through `0007_partner_sessions_and_notifications.sql`, Find a Partner uses real consented adult accounts, multiple non-locking expressions of interest, flexible availability windows, confirmed-session lifecycle actions, blocks, reports, and opt-in SMS preferences; My Crew stores private crew membership and supports secure, expiring, revocable invitations. SMS delivery still requires the server-only provider configuration above. Crew sessions and recaps, challenges, and explicit social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
 
 The three home actions remain independent, but the pilot puts **Climb With My Crew** first:
 
@@ -198,6 +223,9 @@ Manual annotation is never required for social sharing.
 - `supabase/migrations/0002_security_and_sharing.sql`: private Storage, invitation/RSVP data, revocable share links, and expanded RLS policies
 - `supabase/migrations/0004_partner_matching.sql`: five Bay Area Movement locations plus adult-only discovery and atomic invitation/session RPCs
 - `supabase/migrations/0005_persistent_crews.sql`: atomic crew creation, member-only reads, and hashed-token invitation acceptance/revocation
+- `supabase/migrations/0007_partner_sessions_and_notifications.sql`: non-locking interest, atomic match acceptance, session lifecycle, private SMS preferences, and notification outbox
+- `supabase/migrations/0008_partner_session_concurrency.sql`: concurrency-safe match acceptance, session responses, and atomic notification claiming
+- `supabase/functions/partner-sms/index.ts`: authenticated phone verification, opt-out synchronization, and server-only notification dispatch
 - `supabase/functions/resolve-share/index.ts`: trusted share-token resolver that issues short-lived media URLs
 - `src/services/supabase.ts`: credential-aware Supabase client and private-media helpers
 - `src/services/partnerBackend.ts`: real availability, invitation, session, block, and report adapter
@@ -256,6 +284,8 @@ Completed locally:
 - Direct My Climbs -> share-card handoff, media-backed downloadable cards, and a landing-page product walkthrough
 - Real adult partner availability, discovery, invitations, acceptance/decline, session confirmation, blocking, and reporting when migration `0004` is applied
 - Persistent private crews, member-only visibility, atomic invitation acceptance, and revocable seven-day crew links when migration `0005` is applied
+- Flexible partner windows, multiple non-locking interests, atomic conflict checks, session cancellation/reconfirmation/completion, and real calendar end times when migration `0007` is applied
+- Opt-in verified SMS preference UI, private notification outbox, STOP synchronization endpoint, and server-only delivery worker
 
 Demo-only until a Supabase project is configured:
 
@@ -267,6 +297,7 @@ Blocked on external configuration:
 
 - Activating real accounts, email delivery, and cross-device media in a Supabase pilot project
 - Live two-account RLS and private Storage verification against that configured project
+- Deploying `partner-sms`, registering a sender, configuring Verify/webhook/dispatch secrets, and scheduling notification dispatch
 - Production moderation, rate limits, deletion/export, and guardian consent
 - TestFlight, App Store, and Play Store packages
 
