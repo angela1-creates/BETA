@@ -146,8 +146,10 @@
 .account-state { display: grid; gap: 14px; }
 .account-state h3 { margin: 0; font-family: var(--font-display, Georgia, serif); font-size: 28px; line-height: 1.05; }
 .account-state p { margin: 0; color: #59645f; line-height: 1.55; }
+.account-state .account-email { margin-top: -9px; font-size: 14px; color: #34433c; overflow-wrap: anywhere; }
 .account-state label { display: grid; gap: 7px; font-size: 12px; font-weight: 750; color: #27362f; }
 .account-state small { color: #7a817d; font-weight: 500; }
+.account-state .research-disclosure { text-align: center; }
 .form-success { padding: 11px 13px; border-left: 3px solid #28704e; background: #eef8f1; color: #245d42; font-size: 12px; }
 .full { width: 100%; justify-content: center; }
 .referral-panel { display: grid; gap: 12px; margin: 8px 0; padding: 18px; border-radius: 16px; background: #f0eee7; }

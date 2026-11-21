@@ -94,9 +94,10 @@ test('availability captures a flexible window and exposes lifecycle actions', ()
 })
 
 test('connected account copy distinguishes real and local-only features', () => {
-  assert.match(accountModal, /Pilot backend connected/)
-  assert.match(accountModal, /adult partner matching, private crews, and crew membership sync/)
-  assert.match(accountModal, /Challenges and explicit share links remain stored locally/)
+  assert.match(accountModal, /<AccessibleModal title="Account"/)
+  assert.match(accountModal, /Route Lab data, private media, partner matches, and crews sync across devices/)
+  assert.match(accountModal, /Challenges and share links stay on this device/)
+  assert.match(accountModal, /Part of the BETA research pilot/)
   assert.doesNotMatch(accountModal, /matching remain demo-only/)
 })
 
