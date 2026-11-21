@@ -57,8 +57,10 @@ supabase secrets set ALLOWED_ORIGINS=https://beta-climb.vercel.app,https://angel
 supabase secrets set APP_REDIRECT_URL=https://beta-climb.vercel.app/
 ```
 
-Partner SMS is disabled until a registered Twilio sender and Verify service are
-configured. Never add these values to Vite variables or browser code:
+The MVP uses downloadable calendar events for reminders. The SMS backend is retained
+for a later pilot phase, but the product does not expose SMS enrollment until a
+registered sender, verification service, and operating budget are ready. Never add
+these values to Vite variables or browser code:
 
 ```bash
 supabase secrets set TWILIO_ACCOUNT_SID=YOUR_ACCOUNT_SID
@@ -181,7 +183,7 @@ fictional demo.
 
 ## Demo mode
 
-Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migrations through `0007_partner_sessions_and_notifications.sql`, Find a Partner uses real consented adult accounts, multiple non-locking expressions of interest, flexible availability windows, confirmed-session lifecycle actions, blocks, reports, and opt-in SMS preferences; My Crew stores private crew membership and supports secure, expiring, revocable invitations. SMS delivery still requires the server-only provider configuration above. Crew sessions and recaps, challenges, and explicit social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
+Without Supabase credentials, the social crew, matching, and challenge areas remain a frontend-only interactive demo. With credentials and migrations through `0007_partner_sessions_and_notifications.sql`, Find a Partner uses real consented adult accounts, multiple non-locking expressions of interest, flexible availability windows, confirmed-session lifecycle actions, blocks, reports, and calendar downloads; My Crew stores private crew membership and supports secure, expiring, revocable invitations. SMS delivery remains dormant for a later phase and email reminders are not part of this MVP. Crew sessions and recaps, challenges, and explicit social share links remain local-only. Route Lab remains local-first without credentials and uses the authenticated private research backend when configured.
 
 The three home actions remain independent, but the pilot puts **Climb With My Crew** first:
 
@@ -285,7 +287,7 @@ Completed locally:
 - Real adult partner availability, discovery, invitations, acceptance/decline, session confirmation, blocking, and reporting when migration `0004` is applied
 - Persistent private crews, member-only visibility, atomic invitation acceptance, and revocable seven-day crew links when migration `0005` is applied
 - Flexible partner windows, multiple non-locking interests, atomic conflict checks, session cancellation/reconfirmation/completion, and real calendar end times when migration `0007` is applied
-- Opt-in verified SMS preference UI, private notification outbox, STOP synchronization endpoint, and server-only delivery worker
+- Calendar-first reminders in the partner UI, with the private SMS outbox and delivery worker retained but dormant for a later phase
 
 Demo-only until a Supabase project is configured:
 
@@ -297,7 +299,7 @@ Blocked on external configuration:
 
 - Activating real accounts, email delivery, and cross-device media in a Supabase pilot project
 - Live two-account RLS and private Storage verification against that configured project
-- Deploying `partner-sms`, registering a sender, configuring Verify/webhook/dispatch secrets, and scheduling notification dispatch
+- Choosing and funding an outbound reminder provider before enabling SMS or email delivery
 - Production moderation, rate limits, deletion/export, and guardian consent
 - TestFlight, App Store, and Play Store packages
 
