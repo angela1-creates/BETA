@@ -2,6 +2,13 @@
 
 All notable changes to BETA are documented here.
 
+## [Unreleased]
+
+### Changed
+
+- Make calendar downloads the MVP reminder path for confirmed partner sessions.
+- Keep SMS enrollment out of the product until a registered sender, verification service, and operating budget are ready.
+
 ## [0.2.0.0] - 2026-11-20
 
 ### Added

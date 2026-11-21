@@ -88,7 +88,9 @@ test('availability captures a flexible window and exposes lifecycle actions', ()
   assert.match(app, /Availability must be between 1 and 3 hours/)
   assert.match(app, /partnerBackend\.reconfirmSession/)
   assert.match(app, /partnerBackend\.completeSession/)
-  assert.match(app, /SMS partner notifications/)
+  assert.match(app, /Add calendar reminder/)
+  assert.match(app, /calendar can remind you/)
+  assert.doesNotMatch(app, /Set up SMS|SMS partner notifications/)
 })
 
 test('connected account copy distinguishes real and local-only features', () => {
