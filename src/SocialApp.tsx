@@ -404,10 +404,9 @@ function MyCrewPersistent({ demo, update, notify, onFind, onAccount, onCapture }
       onCapture={onCapture}
       crewOverride={{ id: crews[0].id, name: crews[0].name, members: crews[0].members.map(member => member.displayName) }}
     />}
-    {realMode && !error && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crewFlow.connectedTitle')}</h2><p>{t('crewFlow.sessionNext')}</p></div></section>}
     {!backendConfigured && <section className="return-card"><div><span className="kicker light">{t('crew.return')}</span><h2>{t('crew.ready')}</h2><p>{t('crew.subtitle')}</p></div><button className="primary-button pale" onClick={onFind}>{t('home.find')} <Icon name="arrow"/></button></section>}
     <section className="section-block"><div className="section-heading"><div><span className="kicker">{t('crew.groupsLabel')}</span><h2>{t('crew.groups')}</h2></div></div>
-      {!loading && realMode && crews.length === 0 && <p className="section-empty-copy">{t('crewFlow.noCrews')}</p>}
+      {!loading && realMode && !error && crews.length === 0 && <p className="section-empty-copy">{t('crewFlow.noCrews')}</p>}
       <div className="crew-grid">{crews.map(crew => { const invitations = remoteInvites.filter(item => item.crewId === crew.id); return <article key={crew.id}><div className="crew-icon">{crew.kind === 'Family' ? '⌂' : '◎'}</div><span className="privacy-pill">{t('crew.membersOnly')}</span><h3>{crew.name}</h3><p>{kindLabel(crew)} · {t('crew.members', { count: crew.members.length })}</p><div className="member-row">{crew.members.map(member => <span key={member.id} title={member.displayName}>{member.displayName[0]}</span>)}<button onClick={() => void openInvite(crew)} aria-label={`${t('crew.invite')} ${crew.name}`}>＋</button></div>
         {crew.guardianManaged && <small>{t('crew.guardian')}</small>}
         {invitations.map(invitation => <div className="crew-active-invite" key={invitation.id}><span>{t('crewFlow.activeInvite', { date: formatTime(invitation.expiresAt) })}</span><button className="text-button" disabled={busy} onClick={() => void revoke(invitation.id)}>{t('crewFlow.revokeInvite')}</button></div>)}
